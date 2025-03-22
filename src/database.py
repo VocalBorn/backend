@@ -2,7 +2,6 @@
 import os
 
 from sqlmodel import SQLModel, Session, create_engine
-from sqlalchemy.orm import sessionmaker
 
 DB_ADDRESS = os.getenv("DB_ADDRESS")
 DB_PORT = os.getenv("DB_PORT")
