@@ -1,6 +1,7 @@
 import datetime
 from typing import Optional
 import uuid
+from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel
 
 class Account(SQLModel, table=True):
@@ -15,7 +16,7 @@ class Account(SQLModel, table=True):
 class User(SQLModel, table=True):
   __tablename__ = "users"
   user_id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-  account_id: uuid.UUID = Field(foreign_key="account.account_id", nullable=False, unique=True)
+  account_id: uuid.UUID = Field(foreign_key="accounts.account_id", nullable=False, unique=True)
   name: str = Field(nullable=False, max_length=100)
   gender: Optional[str] = Field(max_length=10)
   age: Optional[int] = Field(default=None)
