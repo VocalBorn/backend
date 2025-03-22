@@ -32,3 +32,5 @@ docker run -d -p 5001:5000 vocalborn_backend
 - chore: 其他變更（如建構過程、輔助工具等）
 ## 參考來源
 - [FastAPI](https://fastapi.tiangolo.com/)
+- [FastAPI Best Practices](https://github.com/zhanymkanov/fastapi-best-practices)
+- [fastapi-sqlmodel](https://github.com/anthonycepeda/fastapi-sqlmodel)
