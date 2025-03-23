@@ -2,8 +2,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from src.auth.schemas import RegisterRequest
-from src.auth.service import account_register
+from src.auth.schemas import RegisterRequest, LoginRequest, LoginResponse
+from src.auth.service import account_register, account_login
 from src.database import get_session
 
 router = APIRouter(
@@ -21,8 +21,9 @@ async def register(
   return await account_register(request, session)
 
 # 登入
-@router.post('/login')
-async def login():
-  return 'Login'
-
-
+@router.post('/login', response_model=LoginResponse)
+async def login(
+    request: LoginRequest,
+    session: Annotated[Session, Depends(get_session)]
+):
+    return await account_login(request, session)
