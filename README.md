@@ -22,6 +22,9 @@ pip freeze > requirements.txt
 ```
 docker run -d -p 5001:5000 vocalborn_backend
 ```
+## 編輯Draw.io 檔案
+在VSCode中安裝Draw.io Integration套件，並開啟drawio檔案
+
 ## Conventional Commits：
 - feat: 新功能
 - fix: 修復 bug
