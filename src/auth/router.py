@@ -10,14 +10,13 @@ from src.auth.schemas import (
     ForgotPasswordRequest,
     ResetPasswordRequest
 )
-from src.auth.service import (
-    account_register,
-    account_login,
-    verify_email,
-    resend_verification,
-    forgot_password,
-    reset_password
+
+from src.auth.services.account_service import (
+    register as account_register,
+    login as account_login,
 )
+from src.auth.services.email_verification_service import resend_verification, verify_email
+from src.auth.services.password_reset_service import forgot_password, reset_password
 from src.database import get_session
 
 router = APIRouter(
