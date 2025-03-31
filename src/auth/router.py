@@ -3,12 +3,20 @@ from fastapi import APIRouter, Depends
 from pydantic import EmailStr
 from sqlmodel import Session
 
-from src.auth.schemas import RegisterRequest, LoginRequest, LoginResponse
+from src.auth.schemas import (
+    RegisterRequest, 
+    LoginRequest, 
+    LoginResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest
+)
 from src.auth.service import (
     account_register,
     account_login,
     verify_email,
-    resend_verification
+    resend_verification,
+    forgot_password,
+    reset_password
 )
 from src.database import get_session
 
@@ -49,3 +57,19 @@ async def resend_verification_route(
     session: Annotated[Session, Depends(get_session)]
 ):
     return await resend_verification(email, session)
+
+# 忘記密碼
+@router.post('/forgot-password')
+async def forgot_password_route(
+    request: ForgotPasswordRequest,
+    session: Annotated[Session, Depends(get_session)]
+):
+    return await forgot_password(request, session)
+
+# 重設密碼
+@router.post('/reset-password')
+async def reset_password_route(
+    request: ResetPasswordRequest,
+    session: Annotated[Session, Depends(get_session)]
+):
+    return await reset_password(request, session)
