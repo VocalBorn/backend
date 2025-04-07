@@ -184,7 +184,7 @@ class EmailService:
         self,
         to_email: EmailStr,
         token: str,
-        base_url: str = "http://localhost:8000"
+        base_url: str = os.getenv("BASE_URL", "http://localhost:8000")
     ) -> None:
         """
         發送電子郵件驗證信
@@ -207,7 +207,7 @@ class EmailService:
         self,
         to_email: EmailStr,
         token: str,
-        base_url: str = "http://localhost:8000"
+        base_url: str = os.getenv("BASE_URL", "http://localhost:8000")
     ) -> None:
         """
         發送重設密碼郵件
