@@ -52,3 +52,10 @@ class ResetPasswordRequest(BaseModel):
         if not any(c in '!@#$%^&*()' for c in password):
             raise ValueError('密碼必須包含至少一個特殊字符(!@#$%^&*())')
         return password
+
+class UpdateUserRequest(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=100)
+    age: Optional[int] = Field(None, ge=0, le=150)
+    phone: Optional[str] = Field(None, max_length=20)
+    gender: Optional[Gender] = None
+

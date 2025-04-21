@@ -8,14 +8,17 @@ from src.auth.schemas import (
     LoginRequest, 
     LoginResponse,
     ForgotPasswordRequest,
-    ResetPasswordRequest
+    ResetPasswordRequest,
+    UpdateUserRequest
 )
 
 from src.auth.services.account_service import (
     register as account_register,
     login as account_login,
+    update_user as account_update,
 )
 from src.auth.services.email_verification_service import resend_verification, verify_email
+from src.auth.services.jwt_service import verify_token
 from src.auth.services.password_reset_service import forgot_password, reset_password
 from src.database import get_session
 
@@ -72,3 +75,12 @@ async def reset_password_route(
     session: Annotated[Session, Depends(get_session)]
 ):
     return await reset_password(request, session)
+
+# 更新使用者資訊
+@router.patch('/profile')
+async def update_profile(
+    request: UpdateUserRequest,
+    email: Annotated[str, Depends(verify_token)],
+    session: Annotated[Session, Depends(get_session)]
+):
+    return await account_update(email, request, session)

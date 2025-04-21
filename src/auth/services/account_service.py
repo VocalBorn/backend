@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 
 from src.auth.models import Account, User, EmailVerification
-from src.auth.schemas import RegisterRequest, LoginRequest, LoginResponse
+from src.auth.schemas import RegisterRequest, LoginRequest, LoginResponse, UpdateUserRequest
 from src.auth.services.jwt_service import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from src.auth.services.password_service import get_password_hash, verify_password
 from src.auth.services.email_verification_service import generate_verification_token, send_verification_email
@@ -96,3 +96,47 @@ async def login(request: LoginRequest, session: Session) -> LoginResponse:
         access_token=access_token,
         token_type="bearer"
     )
+
+async def update_user(email: str, request: UpdateUserRequest, session: Session):
+    # 檢查使用者是否存在
+    account = session.exec(
+        select(Account).where(Account.email == email)
+    ).first()
+    if not account:
+        raise HTTPException(
+            status_code=404,
+            detail="使用者不存在"
+        )
+
+    user = session.exec(
+        select(User).where(User.account_id == account.account_id)
+    ).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="使用者資料不存在"
+        )
+
+    try:
+        # 更新使用者資料
+        if request.name is not None:
+            user.name = request.name
+        if request.gender is not None:
+            user.gender = request.gender
+        if request.age is not None:
+            user.age = request.age
+        if request.phone is not None:
+            user.phone = request.phone
+
+        user.updated_at = datetime.now()
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        return user
+
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"更新使用者資料失敗: {str(e)}"
+        )
