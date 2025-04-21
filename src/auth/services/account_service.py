@@ -140,3 +140,34 @@ async def update_user(email: str, request: UpdateUserRequest, session: Session):
             status_code=500,
             detail=f"更新使用者資料失敗: {str(e)}"
         )
+
+async def update_password(email: str, old_password: str, new_password: str, session: Session):
+    # 檢查使用者是否存在
+    account = session.exec(
+        select(Account).where(Account.email == email)
+    ).first()
+    if not account:
+        raise HTTPException(
+            status_code=404,
+            detail="使用者不存在"
+        )
+
+    # 驗證舊密碼
+    if not verify_password(old_password, account.password):
+        raise HTTPException(
+            status_code=401,
+            detail="舊密碼錯誤"
+        )
+
+    # 更新密碼
+    try:
+        account.password = get_password_hash(new_password)
+        session.add(account)
+        session.commit()
+        return {"message": "密碼已更新成功"}
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"更新密碼失敗: {str(e)}"
+        )

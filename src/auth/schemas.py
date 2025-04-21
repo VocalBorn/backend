@@ -59,3 +59,18 @@ class UpdateUserRequest(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     gender: Optional[Gender] = None
 
+class UpdatePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str = Field(..., min_length=8)
+
+    @field_validator('new_password', mode='before')
+    def validate_password(cls, password: str):
+        if not any(c.isupper() for c in password):
+            raise ValueError('密碼必須包含至少一個大寫字母')
+        if not any(c.islower() for c in password):
+            raise ValueError('密碼必須包含至少一個小寫字母')
+        if not any(c.isdigit() for c in password):
+            raise ValueError('密碼必須包含至少一個數字')
+        if not any(c in '!@#$%^&*()' for c in password):
+            raise ValueError('密碼必須包含至少一個特殊字符(!@#$%^&*())')
+        return password
