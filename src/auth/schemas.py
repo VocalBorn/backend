@@ -2,6 +2,24 @@ from enum import Enum
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator
 
+def validate_password_rules(password: str) -> str:
+    """
+    驗證密碼是否符合規則：
+    - 至少包含一個大寫字母
+    - 至少包含一個小寫字母
+    - 至少包含一個數字
+    - 至少包含一個特殊字符
+    """
+    if not any(c.isupper() for c in password):
+        raise ValueError('密碼必須包含至少一個大寫字母')
+    if not any(c.islower() for c in password):
+        raise ValueError('密碼必須包含至少一個小寫字母')
+    if not any(c.isdigit() for c in password):
+        raise ValueError('密碼必須包含至少一個數字')
+    if not any(c in '!@#$%^&*()' for c in password):
+        raise ValueError('密碼必須包含至少一個特殊字符(!@#$%^&*())')
+    return password
+
 class Gender(str, Enum):
     MALE = "male"
     FEMALE = "female"
@@ -16,15 +34,7 @@ class RegisterRequest(BaseModel):
 
     @field_validator('password', mode='before')
     def validate_password(cls, password: str):
-        if not any(c.isupper() for c in password):
-            raise ValueError('密碼必須包含至少一個大寫字母')
-        if not any(c.islower() for c in password):
-            raise ValueError('密碼必須包含至少一個小寫字母')
-        if not any(c.isdigit() for c in password):
-            raise ValueError('密碼必須包含至少一個數字')
-        if not any(c in '!@#$%^&*()' for c in password):
-            raise ValueError('密碼必須包含至少一個特殊字符(!@#$%^&*())')
-        return password
+        return validate_password_rules(password)
 
 class LoginRequest(BaseModel):
     email: EmailStr
@@ -43,15 +53,7 @@ class ResetPasswordRequest(BaseModel):
 
     @field_validator('password', mode='before')
     def validate_password(cls, password: str):
-        if not any(c.isupper() for c in password):
-            raise ValueError('密碼必須包含至少一個大寫字母')
-        if not any(c.islower() for c in password):
-            raise ValueError('密碼必須包含至少一個小寫字母')
-        if not any(c.isdigit() for c in password):
-            raise ValueError('密碼必須包含至少一個數字')
-        if not any(c in '!@#$%^&*()' for c in password):
-            raise ValueError('密碼必須包含至少一個特殊字符(!@#$%^&*())')
-        return password
+        return validate_password_rules(password)
 
 class UpdateUserRequest(BaseModel):
     name: Optional[str] = Field(None, min_length=2, max_length=100)
@@ -65,12 +67,4 @@ class UpdatePasswordRequest(BaseModel):
 
     @field_validator('new_password', mode='before')
     def validate_password(cls, password: str):
-        if not any(c.isupper() for c in password):
-            raise ValueError('密碼必須包含至少一個大寫字母')
-        if not any(c.islower() for c in password):
-            raise ValueError('密碼必須包含至少一個小寫字母')
-        if not any(c.isdigit() for c in password):
-            raise ValueError('密碼必須包含至少一個數字')
-        if not any(c in '!@#$%^&*()' for c in password):
-            raise ValueError('密碼必須包含至少一個特殊字符(!@#$%^&*())')
-        return password
+        return validate_password_rules(password)
