@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from typing import List, Optional
 from sqlmodel import Field, Relationship, SQLModel
 
@@ -8,8 +8,8 @@ class Course(SQLModel, table=True):
     course_id: Optional[int] = Field(default=None, primary_key=True)
     course_name: str = Field(index=True)
     description: Optional[str] = None
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
     # Relationships
     chapters: List["Chapter"] = Relationship(back_populates="course")
@@ -22,8 +22,8 @@ class Chapter(SQLModel, table=True):
     chapter_name: str = Field(index=True)
     description: Optional[str] = None
     sequence_number: int
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
     # Relationships
     course: Course = Relationship(back_populates="chapters")
@@ -37,8 +37,8 @@ class Sentence(SQLModel, table=True):
     sentence_name: str = Field(index=True)
     speaker_role: str
     content: str
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
     # Relationships
     chapter: Chapter = Relationship(back_populates="sentences")

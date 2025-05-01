@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from typing import Optional
 from fastapi import HTTPException
 from sqlmodel import Session, select
@@ -107,7 +107,7 @@ async def update_sentence(
     if sentence_data.content is not None:
         sentence.content = sentence_data.content
     
-    sentence.updated_at = datetime.utcnow()
+    sentence.updated_at = datetime.datetime.now()
     session.add(sentence)
     session.commit()
     session.refresh(sentence)

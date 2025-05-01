@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from typing import Optional
 from fastapi import HTTPException
 from sqlmodel import Session, select
@@ -89,7 +89,7 @@ async def update_course(
     if course_data.description is not None:
         course.description = course_data.description
     
-    course.updated_at = datetime.utcnow()
+    course.updated_at = datetime.datetime.now()
     session.add(course)
     session.commit()
     session.refresh(course)

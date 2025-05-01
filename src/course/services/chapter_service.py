@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 from typing import Optional, List
 from fastapi import HTTPException
 from sqlmodel import Session, select
@@ -108,7 +108,7 @@ async def update_chapter(
     if chapter_data.sequence_number is not None:
         chapter.sequence_number = chapter_data.sequence_number
     
-    chapter.updated_at = datetime.utcnow()
+    chapter.updated_at = datetime.datetime.now()
     session.add(chapter)
     session.commit()
     session.refresh(chapter)
@@ -169,7 +169,7 @@ async def reorder_chapters(
     for order in reorder_data.chapter_orders:
         chapter = next(c for c in chapters if c.chapter_id == order.chapter_id)
         chapter.sequence_number = order.sequence_number
-        chapter.updated_at = datetime.utcnow()
+        chapter.updated_at = datetime.datetime.now()
         session.add(chapter)
     
     session.commit()
