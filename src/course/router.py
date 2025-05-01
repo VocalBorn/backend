@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
 from src.database import get_session
+from src.auth.services.jwt_service import verify_token
 from src.course.schemas import (
     CourseCreate,
     CourseUpdate,
@@ -50,6 +51,7 @@ router = APIRouter(
 @router.get('/list', response_model=CourseListResponse)
 async def list_courses_route(
     session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)],
     skip: int = 0,
     limit: int = 10,
     search: str = None
@@ -59,14 +61,16 @@ async def list_courses_route(
 @router.get('/{course_id}', response_model=CourseResponse)
 async def get_course_route(
     course_id: int,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await get_course(course_id, session)
 
 @router.post('/create', response_model=CourseResponse)
 async def create_course_route(
     course_data: CourseCreate,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await create_course(course_data, session)
 
@@ -74,14 +78,16 @@ async def create_course_route(
 async def update_course_route(
     course_id: int,
     course_data: CourseUpdate,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await update_course(course_id, course_data, session)
 
 @router.delete('/{course_id}')
 async def delete_course_route(
     course_id: int,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await delete_course(course_id, session)
 
@@ -90,6 +96,7 @@ async def delete_course_route(
 async def list_chapters_route(
     course_id: int,
     session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)],
     skip: int = 0,
     limit: int = 10
 ):
@@ -98,7 +105,8 @@ async def list_chapters_route(
 @router.get('/chapter/{chapter_id}', response_model=ChapterResponse)
 async def get_chapter_route(
     chapter_id: int,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await get_chapter(chapter_id, session)
 
@@ -106,7 +114,8 @@ async def get_chapter_route(
 async def create_chapter_route(
     course_id: int,
     chapter_data: ChapterCreate,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await create_chapter(course_id, chapter_data, session)
 
@@ -114,14 +123,16 @@ async def create_chapter_route(
 async def update_chapter_route(
     chapter_id: int,
     chapter_data: ChapterUpdate,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await update_chapter(chapter_id, chapter_data, session)
 
 @router.delete('/chapter/{chapter_id}')
 async def delete_chapter_route(
     chapter_id: int,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await delete_chapter(chapter_id, session)
 
@@ -129,7 +140,8 @@ async def delete_chapter_route(
 async def reorder_chapters_route(
     course_id: int,
     reorder_data: ChapterReorder,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await reorder_chapters(course_id, reorder_data, session)
 
@@ -138,6 +150,7 @@ async def reorder_chapters_route(
 async def list_sentences_route(
     chapter_id: int,
     session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)],
     skip: int = 0,
     limit: int = 10
 ):
@@ -146,7 +159,8 @@ async def list_sentences_route(
 @router.get('/sentence/{sentence_id}', response_model=SentenceResponse)
 async def get_sentence_route(
     sentence_id: int,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await get_sentence(sentence_id, session)
 
@@ -154,7 +168,8 @@ async def get_sentence_route(
 async def create_sentence_route(
     chapter_id: int,
     sentence_data: SentenceCreate,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await create_sentence(chapter_id, sentence_data, session)
 
@@ -162,13 +177,15 @@ async def create_sentence_route(
 async def update_sentence_route(
     sentence_id: int,
     sentence_data: SentenceUpdate,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await update_sentence(sentence_id, sentence_data, session)
 
 @router.delete('/sentence/{sentence_id}')
 async def delete_sentence_route(
     sentence_id: int,
-    session: Annotated[Session, Depends(get_session)]
+    session: Annotated[Session, Depends(get_session)],
+    email: Annotated[str, Depends(verify_token)]
 ):
     return await delete_sentence(sentence_id, session)
