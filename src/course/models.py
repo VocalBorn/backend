@@ -1,6 +1,11 @@
 import datetime
+from enum import Enum
 from typing import List, Optional
 from sqlmodel import Field, Relationship, SQLModel
+
+class SpeakerRole(str, Enum):
+    SELF = "self"      # 自己
+    OTHER = "other"    # 對方
 
 class Course(SQLModel, table=True):
     __tablename__ = "courses"
@@ -35,7 +40,8 @@ class Sentence(SQLModel, table=True):
     sentence_id: Optional[int] = Field(default=None, primary_key=True)
     chapter_id: int = Field(foreign_key="chapters.chapter_id")
     sentence_name: str = Field(index=True)
-    speaker_role: str
+    speaker_role: SpeakerRole
+    role_description: Optional[str] = None
     content: str
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)

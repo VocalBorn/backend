@@ -26,6 +26,7 @@ async def create_sentence(
         chapter_id=chapter_id,
         sentence_name=sentence_data.sentence_name,
         speaker_role=sentence_data.speaker_role,
+        role_description=sentence_data.role_description,
         content=sentence_data.content
     )
     
@@ -40,6 +41,7 @@ async def create_sentence(
         speaker_role=sentence.speaker_role,
         content=sentence.content,
         created_at=sentence.created_at,
+        role_description=sentence.role_description,
         updated_at=sentence.updated_at
     )
 
@@ -59,6 +61,7 @@ async def get_sentence(
         speaker_role=sentence.speaker_role,
         content=sentence.content,
         created_at=sentence.created_at,
+        role_description=sentence.role_description,
         updated_at=sentence.updated_at
     )
 
@@ -84,6 +87,7 @@ async def list_sentences(
                 speaker_role=sentence.speaker_role,
                 content=sentence.content,
                 created_at=sentence.created_at,
+                role_description=sentence.role_description,
                 updated_at=sentence.updated_at
             )
             for sentence in sentences
@@ -119,6 +123,7 @@ async def update_sentence(
         speaker_role=sentence.speaker_role,
         content=sentence.content,
         created_at=sentence.created_at,
+        role_description=sentence.role_description,
         updated_at=sentence.updated_at
     )
 

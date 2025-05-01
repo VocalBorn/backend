@@ -2,6 +2,8 @@ from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel
 
+from src.course.models import SpeakerRole
+
 # Course Schemas
 class CourseCreate(BaseModel):
     course_name: str
@@ -124,28 +126,32 @@ class ChapterResponse(BaseModel):
 # Sentence Schemas
 class SentenceCreate(BaseModel):
     sentence_name: str
-    speaker_role: str
+    speaker_role: SpeakerRole
+    role_description: Optional[str] = None
     content: str
 
     class Config:
         json_schema_extra = {
             "example": {
                 "sentence_name": "基本點餐對話",
-                "speaker_role": "客人",
+                "speaker_role": "self",
+                "role_description": "客人",
                 "content": "我想要一份牛肉麵，不要太辣"
             }
         }
 
 class SentenceUpdate(BaseModel):
     sentence_name: Optional[str] = None
-    speaker_role: Optional[str] = None
+    speaker_role: Optional[SpeakerRole] = None
+    role_description: Optional[str] = None
     content: Optional[str] = None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "sentence_name": "修改後的點餐對話",
-                "speaker_role": "客人",
+                "speaker_role": "self",
+                "role_description": "客人",
                 "content": "請給我一份牛肉麵，小辣"
             }
         }
@@ -154,7 +160,8 @@ class SentenceResponse(BaseModel):
     sentence_id: int
     chapter_id: int
     sentence_name: str
-    speaker_role: str
+    speaker_role: SpeakerRole
+    role_description: Optional[str]
     content: str
     created_at: datetime
     updated_at: datetime
@@ -165,7 +172,8 @@ class SentenceResponse(BaseModel):
                 "sentence_id": 1,
                 "chapter_id": 1,
                 "sentence_name": "基本點餐對話",
-                "speaker_role": "客人",
+                "speaker_role": "self",
+                "role_description": "客人",
                 "content": "我想要一份牛肉麵，不要太辣",
                 "created_at": "2025-05-01T06:05:16.517760",
                 "updated_at": "2025-05-01T06:05:16.518057"
@@ -223,7 +231,8 @@ class SentenceListResponse(BaseModel):
                     "sentence_id": 1,
                     "chapter_id": 1,
                     "sentence_name": "基本點餐對話",
-                    "speaker_role": "客人",
+                    "speaker_role": "self",
+                    "role_description": "客人",
                     "content": "我想要一份牛肉麵，不要太辣",
                     "created_at": "2025-05-01T06:05:16.517760",
                     "updated_at": "2025-05-01T06:05:16.518057"
