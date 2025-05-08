@@ -5,6 +5,8 @@ from pydantic import EmailStr
 from typing import Optional, Dict, Any
 import smtplib
 import os
+import asyncio
+from contextlib import asynccontextmanager
 
 class EmailTemplates:
     """電子郵件範本管理類"""
@@ -66,7 +68,34 @@ class EmailService:
         self.from_email = os.getenv("MAIL_FROM")
         self.server = None
         self.max_retries = 2
-        self.connect()
+        self.timeout = 10  # 設置超時時間為10秒
+    
+    @asynccontextmanager
+    async def get_connection(self):
+        """以非同步上下文管理器方式提供 SMTP 連接"""
+        server = None
+        try:
+            server = smtplib.SMTP(self.host, self.port, timeout=self.timeout)
+            server.ehlo()
+            server.starttls()
+            server.login(self.username, self.password)
+            yield server
+        except smtplib.SMTPConnectError:
+            raise HTTPException(status_code=500, detail="無法連接到SMTP伺服器，請稍後再試")
+        except smtplib.SMTPAuthenticationError:
+            raise HTTPException(status_code=500, detail="SMTP認證失敗，請檢查服務配置")
+        except smtplib.SMTPException as e:
+            raise HTTPException(status_code=500, detail=f"SMTP錯誤: {str(e)}")
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=500, detail="郵件伺服器連接超時")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"郵件服務錯誤: {str(e)}")
+        finally:
+            if server:
+                try:
+                    server.quit()
+                except Exception:
+                    pass
     
     def connect(self) -> None:
         """
@@ -76,29 +105,23 @@ class EmailService:
             HTTPException: 當連接失敗時拋出 500 錯誤
         """
         try:
-            self.server = smtplib.SMTP(self.host, self.port)
+            self.server = smtplib.SMTP(self.host, self.port, timeout=self.timeout)
             self.server.ehlo()
             self.server.starttls()
             self.server.login(self.username, self.password)
+        except smtplib.SMTPConnectError:
+            raise HTTPException(status_code=500, detail="無法連接到SMTP伺服器，請稍後再試")
+        except smtplib.SMTPAuthenticationError:
+            raise HTTPException(status_code=500, detail="SMTP認證失敗，請檢查服務配置")
+        except smtplib.SMTPException as e:
+            raise HTTPException(status_code=500, detail=f"SMTP錯誤: {str(e)}")
+        except asyncio.TimeoutError:
+            raise HTTPException(status_code=500, detail="郵件伺服器連接超時")
         except Exception as e:
             raise HTTPException(
                 status_code=500, 
                 detail=f"SMTP伺服器連接失敗: {str(e)}"
             )
-    
-    def reconnect(self) -> None:
-        """重新連接 SMTP 伺服器"""
-        self.close()
-        self.connect()
-    
-    def close(self) -> None:
-        """安全地關閉 SMTP 伺服器連接"""
-        if self.server:
-            try:
-                self.server.quit()
-            except Exception:
-                pass  # 忽略關閉時的錯誤
-        self.server = None
     
     def _create_message(
         self, 
@@ -156,28 +179,65 @@ class EmailService:
         message = self._create_message(to_email, subject, html_content, custom_headers)
         
         try:
-            if not self.server:
-                self.connect()
+            # 使用異步上下文管理器
+            async with self.get_connection() as smtp_server:
+                await asyncio.wait_for(
+                    asyncio.to_thread(smtp_server.send_message, message),
+                    timeout=self.timeout
+                )
+                return
                 
-            try:
-                self.server.send_message(message)
-            except Exception:
-                if retry_count < self.max_retries:
-                    self.reconnect()
-                    return await self.send_email(
-                        to_email,
-                        subject,
-                        html_content,
-                        custom_headers,
-                        retry_count + 1
-                    )
-                raise
-                
-        except Exception as e:
-            self.close()
+        except asyncio.TimeoutError:
+            if retry_count < self.max_retries:
+                return await self.send_email(
+                    to_email,
+                    subject,
+                    html_content,
+                    custom_headers,
+                    retry_count + 1
+                )
+            raise HTTPException(
+                status_code=500,
+                detail="發送郵件超時，請稍後再試"
+            )
+        except smtplib.SMTPServerDisconnected:
+            if retry_count < self.max_retries:
+                return await self.send_email(
+                    to_email,
+                    subject,
+                    html_content,
+                    custom_headers,
+                    retry_count + 1
+                )
+            raise HTTPException(
+                status_code=500,
+                detail="SMTP伺服器連接中斷，請稍後再試"
+            )
+        except smtplib.SMTPException as e:
+            if retry_count < self.max_retries:
+                return await self.send_email(
+                    to_email,
+                    subject,
+                    html_content,
+                    custom_headers,
+                    retry_count + 1
+                )
             raise HTTPException(
                 status_code=500,
                 detail=f"發送郵件失敗: {str(e)}"
+            )
+        except Exception as e:
+            if retry_count < self.max_retries:
+                return await self.send_email(
+                    to_email,
+                    subject,
+                    html_content,
+                    custom_headers,
+                    retry_count + 1
+                )
+            raise HTTPException(
+                status_code=500,
+                detail=f"發送郵件時發生錯誤: {str(e)}"
             )
 
     async def send_verification_email(
