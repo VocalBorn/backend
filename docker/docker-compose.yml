@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # PostgreSQL 17 資料庫
+  postgres:
+    image: postgres:17
+    container_name: vocalborn-postgres
+    environment:
+      POSTGRES_USER: vocalborn
+      POSTGRES_PASSWORD: vocalborn_password
+      POSTGRES_DB: vocalborn_db
+    volumes:
+      - /home/improj/vocalborn-services/postgresql:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U vocalborn" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO 物件儲存服務
+  minio:
+    image: minio/minio:latest
+    container_name: vocalborn-minio
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio_password
+    volumes:
+      - /home/improj/vocalborn-services/minio:/data
+    ports:
+      - "9000:9000" # API 端口
+      - "9001:9001" # Console 端口
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # pgAdmin4 管理介面
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vocalborn-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@vocalborn.com
+      PGADMIN_DEFAULT_PASSWORD: admin_password
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    volumes:
+      - /home/improj/vocalborn-services/pgadmin:/var/lib/pgadmin
+    ports:
+      - "5050:80"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+
+  # 後端應用服務
+  backend:
+    image: sindy0514/vocalborn-backend:latest
+    container_name: vocalborn-backend
+    environment:
+      SMTP_PASSWORD: smtp_password
+      DB_ADDRESS: 192.168.0.1
+      DB_PORT: 5630
+      DB_USER: postgres
+      DB_PASSWORD: postgres_password
+      SMTP_HOST: smtp.gmail.com
+      SMTP_USERNAME: smtp_username
+      DB_NAME: DB_NAME
+      SECRET_KEY: secret_key
+      SMTP_PORT: 587
+      MAIL_FROM: mail_from
+      BASE_URL: https://api-vocalborn.r0930514.work
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - minio
+
