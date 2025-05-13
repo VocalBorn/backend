@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 from sqlmodel import Session, select
-import asyncio
+from pydantic import EmailStr, TypeAdapter
 
 from src.auth.models import Account, User, EmailVerification
 from src.auth.schemas import RegisterRequest, LoginRequest, LoginResponse, UpdateUserRequest
@@ -47,25 +47,15 @@ async def register(request: RegisterRequest, session: Session) -> Account:
         session.add(verification)
         session.flush()
         
-        # 發送驗證郵件 (使用超時處理)
+        # 發送驗證郵件（已經內建重試和超時處理）
         try:
-            await asyncio.wait_for(
-                send_verification_email(request.email, verification_token),
-                timeout=15  # 設置發送郵件的最大等待時間為15秒
-            )
-        except asyncio.TimeoutError:
-            # 如果郵件發送超時，我們仍然創建用戶，但記錄這個問題
-            # 稍後可以通過resend_verification功能再次發送
-            session.commit()
-            session.refresh(new_user)
-            return new_user
-        except Exception as email_error:
-            # 郵件服務失敗但非超時情況，仍然創建用戶
-            session.commit()
-            session.refresh(new_user)
-            return new_user
+            await send_verification_email(request.email, verification_token)
+        except Exception as e:
+            # 即使郵件發送失敗，我們仍然創建用戶
+            # 用戶可以稍後通過 resend_verification 功能重新發送驗證郵件
+            pass
         
-        # 如果一切順利，提交事務
+        # 提交事務並回傳用戶資料
         session.commit()
         session.refresh(new_user)
         return new_user

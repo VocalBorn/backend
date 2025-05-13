@@ -1,12 +1,11 @@
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from fastapi import HTTPException
 from pydantic import EmailStr
 from typing import Optional, Dict, Any
-import smtplib
 import os
 import asyncio
-from contextlib import asynccontextmanager
+import httpx
+import logging
+from httpx import ConnectError, ReadTimeout
 
 class EmailTemplates:
     """電子郵件範本管理類"""
@@ -61,99 +60,16 @@ class EmailService:
 
     def __init__(self):
         """初始化電子郵件服務"""
-        self.host = os.getenv("SMTP_HOST")
-        self.port = int(os.getenv("SMTP_PORT", "587"))
-        self.username = os.getenv("SMTP_USERNAME")
-        self.password = os.getenv("SMTP_PASSWORD")
-        self.from_email = os.getenv("MAIL_FROM")
-        self.server = None
+        self.service_host = os.getenv("EMAIL_SERVICE_HOST")
+        self.service_port = os.getenv("EMAIL_SERVICE_PORT")
+        if not self.service_host or not self.service_port:
+            raise ValueError("未設定郵件服務位址或端口")
+        self.base_url = f"http://{self.service_host}:{self.service_port}"
+        # 設置詳細的超時配置
+        self.connect_timeout = 5.0  # 連接超時時間
+        self.read_timeout = 10.0    # 讀取超時時間
+        self.write_timeout = 10.0   # 寫入超時時間
         self.max_retries = 2
-        self.timeout = 10  # 設置超時時間為10秒
-    
-    @asynccontextmanager
-    async def get_connection(self):
-        """以非同步上下文管理器方式提供 SMTP 連接"""
-        server = None
-        try:
-            server = smtplib.SMTP(self.host, self.port, timeout=self.timeout)
-            server.ehlo()
-            server.starttls()
-            server.login(self.username, self.password)
-            yield server
-        except smtplib.SMTPConnectError:
-            raise HTTPException(status_code=500, detail="無法連接到SMTP伺服器，請稍後再試")
-        except smtplib.SMTPAuthenticationError:
-            raise HTTPException(status_code=500, detail="SMTP認證失敗，請檢查服務配置")
-        except smtplib.SMTPException as e:
-            raise HTTPException(status_code=500, detail=f"SMTP錯誤: {str(e)}")
-        except asyncio.TimeoutError:
-            raise HTTPException(status_code=500, detail="郵件伺服器連接超時")
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"郵件服務錯誤: {str(e)}")
-        finally:
-            if server:
-                try:
-                    server.quit()
-                except Exception:
-                    pass
-    
-    def connect(self) -> None:
-        """
-        建立 SMTP 伺服器連接
-        
-        Raises:
-            HTTPException: 當連接失敗時拋出 500 錯誤
-        """
-        try:
-            self.server = smtplib.SMTP(self.host, self.port, timeout=self.timeout)
-            self.server.ehlo()
-            self.server.starttls()
-            self.server.login(self.username, self.password)
-        except smtplib.SMTPConnectError:
-            raise HTTPException(status_code=500, detail="無法連接到SMTP伺服器，請稍後再試")
-        except smtplib.SMTPAuthenticationError:
-            raise HTTPException(status_code=500, detail="SMTP認證失敗，請檢查服務配置")
-        except smtplib.SMTPException as e:
-            raise HTTPException(status_code=500, detail=f"SMTP錯誤: {str(e)}")
-        except asyncio.TimeoutError:
-            raise HTTPException(status_code=500, detail="郵件伺服器連接超時")
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, 
-                detail=f"SMTP伺服器連接失敗: {str(e)}"
-            )
-    
-    def _create_message(
-        self, 
-        to_email: EmailStr,
-        subject: str,
-        html_content: str,
-        custom_headers: Optional[Dict[str, str]] = None
-    ) -> MIMEMultipart:
-        """
-        建立電子郵件訊息
-        
-        Args:
-            to_email: 收件人地址
-            subject: 郵件主旨
-            html_content: HTML 格式的郵件內容
-            custom_headers: 自定義的郵件標頭
-            
-        Returns:
-            MIMEMultipart: 完整的郵件訊息物件
-        """
-        message = MIMEMultipart('alternative')
-        message['Subject'] = subject
-        message['From'] = self.from_email
-        message['To'] = to_email
-        
-        # 加入自定義標頭
-        # if custom_headers:
-        #     for key, value in custom_headers.items():
-        #         message[key] = value
-                
-        message.attach(MIMEText(html_content, 'html'))
-        return message
 
     async def send_email(
         self,
@@ -176,18 +92,68 @@ class EmailService:
         Raises:
             HTTPException: 當郵件發送失敗時拋出 500 錯誤
         """
-        message = self._create_message(to_email, subject, html_content, custom_headers)
-        
+        payload = {
+            "to": [str(to_email)],
+            "subject": subject,
+            "body": html_content
+        }
+
         try:
-            # 使用異步上下文管理器
-            async with self.get_connection() as smtp_server:
-                await asyncio.wait_for(
-                    asyncio.to_thread(smtp_server.send_message, message),
-                    timeout=self.timeout
-                )
-                return
+            # 如果是重試，添加延遲
+            if retry_count > 0:
+                await asyncio.sleep(1 * retry_count)  # 隨著重試次數增加延遲
                 
+            # 使用詳細的超時配置
+            timeout_config = httpx.Timeout(
+                connect=self.connect_timeout,
+                read=self.read_timeout,
+                write=self.write_timeout,
+                pool=None
+            )
+            
+            async with httpx.AsyncClient(
+                timeout=timeout_config,
+                verify=False  # 允許自簽名證書，僅用於開發環境
+            ) as client:
+                logging.info(f"嘗試連接郵件服務 {self.base_url} (重試次數: {retry_count})")
+                response = await client.post(
+                    f"{self.base_url}/send-email",
+                    json=payload
+                )
+                
+                if response.status_code != 200:
+                    error_json = await response.json()
+                    error_detail = error_json.get("error", "未知錯誤")
+                    raise HTTPException(
+                        status_code=response.status_code,
+                        detail=f"郵件服務錯誤: {error_detail}"
+                    )
+
+        except (ConnectError, ReadTimeout) as e:
+            error_msg = (
+                f"郵件服務連接失敗 (嘗試次數: {retry_count + 1}/{self.max_retries + 1})\n"
+                f"目標地址: {self.base_url}\n"
+                f"錯誤詳情: {str(e)}"
+            )
+            logging.error(f"{error_msg}: {str(e)}")
+            if retry_count < self.max_retries:
+                return await self.send_email(
+                    to_email,
+                    subject,
+                    html_content,
+                    custom_headers,
+                    retry_count + 1
+                )
+            raise HTTPException(status_code=500, detail=error_msg)
+            
         except asyncio.TimeoutError:
+            error_msg = (
+                f"發送郵件超時\n"
+                f"目標地址: {self.base_url}\n"
+                f"連接超時: {self.connect_timeout}秒\n"
+                f"讀取超時: {self.read_timeout}秒"
+            )
+            logging.error(f"{error_msg} (嘗試次數: {retry_count + 1}/{self.max_retries + 1})")
             if retry_count < self.max_retries:
                 return await self.send_email(
                     to_email,
@@ -196,37 +162,16 @@ class EmailService:
                     custom_headers,
                     retry_count + 1
                 )
-            raise HTTPException(
-                status_code=500,
-                detail="發送郵件超時，請稍後再試"
-            )
-        except smtplib.SMTPServerDisconnected:
-            if retry_count < self.max_retries:
-                return await self.send_email(
-                    to_email,
-                    subject,
-                    html_content,
-                    custom_headers,
-                    retry_count + 1
-                )
-            raise HTTPException(
-                status_code=500,
-                detail="SMTP伺服器連接中斷，請稍後再試"
-            )
-        except smtplib.SMTPException as e:
-            if retry_count < self.max_retries:
-                return await self.send_email(
-                    to_email,
-                    subject,
-                    html_content,
-                    custom_headers,
-                    retry_count + 1
-                )
-            raise HTTPException(
-                status_code=500,
-                detail=f"發送郵件失敗: {str(e)}"
-            )
+            raise HTTPException(status_code=500, detail=f"{error_msg}，請稍後再試")
+            
         except Exception as e:
+            error_msg = (
+                f"發送郵件時發生錯誤\n"
+                f"目標地址: {self.base_url}\n"
+                f"錯誤類型: {e.__class__.__name__}\n"
+                f"錯誤詳情: {str(e)}"
+            )
+            logging.error(f"{error_msg} (嘗試次數: {retry_count + 1}/{self.max_retries + 1})")
             if retry_count < self.max_retries:
                 return await self.send_email(
                     to_email,
@@ -235,10 +180,7 @@ class EmailService:
                     custom_headers,
                     retry_count + 1
                 )
-            raise HTTPException(
-                status_code=500,
-                detail=f"發送郵件時發生錯誤: {str(e)}"
-            )
+            raise HTTPException(status_code=500, detail=error_msg)
 
     async def send_verification_email(
         self,
