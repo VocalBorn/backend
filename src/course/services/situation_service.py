@@ -31,7 +31,7 @@ async def create_situation(
     )
 
 async def get_situation(
-    situation_id: int,
+    situation_id: str,
     session: Session
 ) -> SituationResponse:
     """取得特定情境"""
@@ -79,7 +79,7 @@ async def list_situations(
     )
 
 async def update_situation(
-    situation_id: int,
+    situation_id: str,
     situation_data: SituationUpdate,
     session: Session
 ) -> SituationResponse:
@@ -110,7 +110,7 @@ async def update_situation(
     )
 
 async def delete_situation(
-    situation_id: int,
+    situation_id: str,
     session: Session
 ):
     """刪除情境"""

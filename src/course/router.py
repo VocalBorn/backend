@@ -60,7 +60,7 @@ async def list_situations_route(
 
 @router.get('/{situation_id}', response_model=SituationResponse)
 async def get_situation_route(
-    situation_id: int,
+    situation_id: str,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
@@ -76,7 +76,7 @@ async def create_situation_route(
 
 @router.patch('/{situation_id}', response_model=SituationResponse)
 async def update_situation_route(
-    situation_id: int,
+    situation_id: str,
     situation_data: SituationUpdate,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
@@ -85,7 +85,7 @@ async def update_situation_route(
 
 @router.delete('/{situation_id}')
 async def delete_situation_route(
-    situation_id: int,
+    situation_id: str,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
@@ -94,7 +94,7 @@ async def delete_situation_route(
 # 章節相關路由
 @router.get('/{situation_id}/chapter/list', response_model=ChapterListResponse)
 async def list_chapters_route(
-    situation_id: int,
+    situation_id: str,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)],
     skip: int = 0,
@@ -138,7 +138,7 @@ async def delete_chapter_route(
 
 @router.patch('/{situation_id}/chapter/reorder')
 async def reorder_chapters_route(
-    situation_id: int,
+    situation_id: str,
     reorder_data: ChapterReorder,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
