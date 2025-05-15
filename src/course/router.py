@@ -2,7 +2,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 
-from src.database import get_session
+from src.shared.database.database import get_session
 from src.auth.services.jwt_service import verify_token
 from src.course.schemas import (
     SituationCreate,

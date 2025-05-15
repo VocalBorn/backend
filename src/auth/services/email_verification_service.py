@@ -6,7 +6,7 @@ from pydantic import EmailStr, TypeAdapter
 import logging
 
 from src.auth.models import Account, EmailVerification
-from src.utils.email_service import EmailService
+from src.shared.services.email_service import EmailService
 
 def generate_verification_token() -> str:
     return secrets.token_urlsafe(32)

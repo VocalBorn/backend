@@ -6,7 +6,7 @@ from src.auth.models import Account, EmailVerification
 from src.auth.schemas import ForgotPasswordRequest, ResetPasswordRequest
 from src.auth.services.password_service import get_password_hash
 from src.auth.services.email_verification_service import generate_verification_token
-from src.utils.email_service import EmailService
+from src.shared.services.email_service import EmailService
 
 async def forgot_password(request: ForgotPasswordRequest, session: Session):
     """處理忘記密碼請求"""

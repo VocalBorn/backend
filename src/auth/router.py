@@ -22,7 +22,7 @@ from src.auth.services.account_service import (
 from src.auth.services.email_verification_service import resend_verification, verify_email
 from src.auth.services.jwt_service import verify_token
 from src.auth.services.password_reset_service import forgot_password, reset_password
-from src.database import get_session
+from src.shared.database.database import get_session
 
 router = APIRouter(
   prefix='/user',
