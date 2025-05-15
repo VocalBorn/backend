@@ -3,7 +3,7 @@ from typing import Optional, List
 from fastapi import HTTPException
 from sqlmodel import Session, select
 
-from src.course.models import Chapter, Course
+from src.course.models import Chapter, Situation
 from src.course.schemas import (
     ChapterCreate,
     ChapterUpdate,
@@ -13,18 +13,18 @@ from src.course.schemas import (
 )
 
 async def create_chapter(
-    course_id: int,
+    situation_id: int,
     chapter_data: ChapterCreate,
     session: Session
 ) -> ChapterResponse:
     """建立新章節"""
-    # 確認課程存在
-    course = session.get(Course, course_id)
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+    # 確認情境存在
+    situation = session.get(Situation, situation_id)
+    if not situation:
+        raise HTTPException(status_code=404, detail="Situation not found")
     
     chapter = Chapter(
-        course_id=course_id,
+        situation_id=situation_id,
         chapter_name=chapter_data.chapter_name,
         description=chapter_data.description,
         sequence_number=chapter_data.sequence_number
@@ -36,7 +36,7 @@ async def create_chapter(
     
     return ChapterResponse(
         chapter_id=chapter.chapter_id,
-        course_id=chapter.course_id,
+        situation_id=chapter.situation_id,
         chapter_name=chapter.chapter_name,
         description=chapter.description,
         sequence_number=chapter.sequence_number,
@@ -55,7 +55,7 @@ async def get_chapter(
     
     return ChapterResponse(
         chapter_id=chapter.chapter_id,
-        course_id=chapter.course_id,
+        situation_id=chapter.situation_id,
         chapter_name=chapter.chapter_name,
         description=chapter.description,
         sequence_number=chapter.sequence_number,
@@ -65,12 +65,12 @@ async def get_chapter(
 
 async def list_chapters(
     session: Session,
-    course_id: int,
+    situation_id: int,
     skip: int = 0,
     limit: int = 10
 ) -> ChapterListResponse:
     """取得章節列表"""
-    query = select(Chapter).where(Chapter.course_id == course_id).order_by(Chapter.sequence_number)
+    query = select(Chapter).where(Chapter.situation_id == situation_id).order_by(Chapter.sequence_number)
     
     total = len(session.exec(query).all())
     chapters = session.exec(query.offset(skip).limit(limit)).all()
@@ -80,7 +80,7 @@ async def list_chapters(
         chapters=[
             ChapterResponse(
                 chapter_id=chapter.chapter_id,
-                course_id=chapter.course_id,
+                situation_id=chapter.situation_id,
                 chapter_name=chapter.chapter_name,
                 description=chapter.description,
                 sequence_number=chapter.sequence_number,
@@ -115,7 +115,7 @@ async def update_chapter(
     
     return ChapterResponse(
         chapter_id=chapter.chapter_id,
-        course_id=chapter.course_id,
+        situation_id=chapter.situation_id,
         chapter_name=chapter.chapter_name,
         description=chapter.description,
         sequence_number=chapter.sequence_number,
@@ -142,26 +142,26 @@ async def delete_chapter(
     session.commit()
 
 async def reorder_chapters(
-    course_id: int,
+    situation_id: int,
     reorder_data: ChapterReorder,
     session: Session
 ):
     """重新排序章節"""
-    # 確認課程存在
-    course = session.get(Course, course_id)
-    if not course:
-        raise HTTPException(status_code=404, detail="Course not found")
+    # 確認情境存在
+    situation = session.get(Situation, situation_id)
+    if not situation:
+        raise HTTPException(status_code=404, detail="Situation not found")
     
     # 取得所有要重新排序的章節
     chapter_ids = [order.chapter_id for order in reorder_data.chapter_orders]
     chapters = session.exec(
         select(Chapter).where(
             Chapter.chapter_id.in_(chapter_ids),
-            Chapter.course_id == course_id
+            Chapter.situation_id == situation_id
         )
     ).all()
     
-    # 確認所有章節都存在且屬於同一課程
+    # 確認所有章節都存在且屬於同一情境
     if len(chapters) != len(chapter_ids):
         raise HTTPException(status_code=400, detail="Invalid chapter IDs provided")
     

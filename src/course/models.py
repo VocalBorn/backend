@@ -4,7 +4,6 @@ from typing import List, Optional
 from sqlmodel import Field, Relationship, SQLModel
 import uuid
 
-# 從auth模塊導入User，解決"User"未定義問題
 from src.auth.models import User
 
 class SpeakerRole(str, Enum):
@@ -78,7 +77,7 @@ class PracticeRecord(SQLModel, table=True):
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
     # Relationships
-    user: "User" = Relationship(back_populates="practice_records")
+    user: "src.auth.models.User" = Relationship(back_populates="practice_records")
     sentence: Sentence = Relationship(back_populates="practice_records")
     feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
 
@@ -96,4 +95,4 @@ class PracticeFeedback(SQLModel, table=True):
 
     # Relationships
     practice_record: PracticeRecord = Relationship(back_populates="feedback")
-    therapist: User = Relationship(sa_relationship_kwargs={"foreign_keys": [therapist_id]})
+    therapist: "src.auth.models.User" = Relationship(sa_relationship_kwargs={"foreign_keys": [therapist_id]})

@@ -5,8 +5,6 @@ import uuid
 from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel
 
-from src.course.models import PracticeRecord
-
 class UserRole(str, Enum):
     ADMIN = "admin"
     CLIENT = "client"
@@ -47,7 +45,7 @@ class User(SQLModel, table=True):
     
     # Relationships
     account: Account = Relationship(back_populates="user")
-    practice_records: List["PracticeRecord"] = Relationship(back_populates="user")
+    practice_records: List["src.course.models.PracticeRecord"] = Relationship(back_populates="user")
     # 如果用戶是治療師，則有客戶列表
     clients: List["TherapistClient"] = Relationship(
         back_populates="therapist", 
@@ -71,11 +69,11 @@ class TherapistClient(SQLModel, table=True):
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     
     # Relationships
-    therapist: User = Relationship(
+    therapist: "User" = Relationship(
         back_populates="clients", 
         sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.therapist_id"}
     )
-    client: User = Relationship(
+    client: "User" = Relationship(
         back_populates="therapists", 
         sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.client_id"}
     )
@@ -92,4 +90,4 @@ class UserWord(SQLModel, table=True):
     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     
     # Relationships
-    user: User = Relationship(back_populates="user_words")
+    user: "User" = Relationship(back_populates="user_words")

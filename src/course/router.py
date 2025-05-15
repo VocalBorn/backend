@@ -5,10 +5,10 @@ from sqlmodel import Session
 from src.database import get_session
 from src.auth.services.jwt_service import verify_token
 from src.course.schemas import (
-    CourseCreate,
-    CourseUpdate,
-    CourseResponse,
-    CourseListResponse,
+    SituationCreate,
+    SituationUpdate,
+    SituationResponse,
+    SituationListResponse,
     ChapterCreate,
     ChapterUpdate,
     ChapterReorder,
@@ -19,12 +19,12 @@ from src.course.schemas import (
     SentenceResponse,
     SentenceListResponse
 )
-from src.course.services.course_service import (
-    create_course,
-    get_course,
-    list_courses,
-    update_course,
-    delete_course
+from src.course.services.situation_service import (
+    create_situation,
+    get_situation,
+    list_situations,
+    update_situation,
+    delete_situation
 )
 from src.course.services.chapter_service import (
     create_chapter,
@@ -43,64 +43,64 @@ from src.course.services.sentence_service import (
 )
 
 router = APIRouter(
-    prefix='/course',
-    tags=['courses']
+    prefix='/situations',
+    tags=['situations']
 )
 
-# 課程相關路由
-@router.get('/list', response_model=CourseListResponse)
-async def list_courses_route(
+# 情境相關路由
+@router.get('/list', response_model=SituationListResponse)
+async def list_situations_route(
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)],
     skip: int = 0,
     limit: int = 10,
     search: str = None
 ):
-    return await list_courses(session=session, skip=skip, limit=limit, search=search)
+    return await list_situations(session=session, skip=skip, limit=limit, search=search)
 
-@router.get('/{course_id}', response_model=CourseResponse)
-async def get_course_route(
-    course_id: int,
+@router.get('/{situation_id}', response_model=SituationResponse)
+async def get_situation_route(
+    situation_id: int,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
-    return await get_course(course_id, session)
+    return await get_situation(situation_id, session)
 
-@router.post('/create', response_model=CourseResponse)
-async def create_course_route(
-    course_data: CourseCreate,
+@router.post('/create', response_model=SituationResponse)
+async def create_situation_route(
+    situation_data: SituationCreate,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
-    return await create_course(course_data, session)
+    return await create_situation(situation_data, session)
 
-@router.patch('/{course_id}', response_model=CourseResponse)
-async def update_course_route(
-    course_id: int,
-    course_data: CourseUpdate,
+@router.patch('/{situation_id}', response_model=SituationResponse)
+async def update_situation_route(
+    situation_id: int,
+    situation_data: SituationUpdate,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
-    return await update_course(course_id, course_data, session)
+    return await update_situation(situation_id, situation_data, session)
 
-@router.delete('/{course_id}')
-async def delete_course_route(
-    course_id: int,
+@router.delete('/{situation_id}')
+async def delete_situation_route(
+    situation_id: int,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
-    return await delete_course(course_id, session)
+    return await delete_situation(situation_id, session)
 
 # 章節相關路由
-@router.get('/{course_id}/chapter/list', response_model=ChapterListResponse)
+@router.get('/{situation_id}/chapter/list', response_model=ChapterListResponse)
 async def list_chapters_route(
-    course_id: int,
+    situation_id: int,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)],
     skip: int = 0,
     limit: int = 10
 ):
-    return await list_chapters(session=session, course_id=course_id, skip=skip, limit=limit)
+    return await list_chapters(session=session, situation_id=situation_id, skip=skip, limit=limit)
 
 @router.get('/chapter/{chapter_id}', response_model=ChapterResponse)
 async def get_chapter_route(
@@ -110,14 +110,14 @@ async def get_chapter_route(
 ):
     return await get_chapter(chapter_id, session)
 
-@router.post('/{course_id}/chapter/create', response_model=ChapterResponse)
+@router.post('/{situation_id}/chapter/create', response_model=ChapterResponse)
 async def create_chapter_route(
-    course_id: int,
+    situation_id: int,
     chapter_data: ChapterCreate,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
-    return await create_chapter(course_id, chapter_data, session)
+    return await create_chapter(situation_id, chapter_data, session)
 
 @router.patch('/chapter/{chapter_id}', response_model=ChapterResponse)
 async def update_chapter_route(
@@ -136,14 +136,14 @@ async def delete_chapter_route(
 ):
     return await delete_chapter(chapter_id, session)
 
-@router.patch('/{course_id}/chapter/reorder')
+@router.patch('/{situation_id}/chapter/reorder')
 async def reorder_chapters_route(
-    course_id: int,
+    situation_id: int,
     reorder_data: ChapterReorder,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
-    return await reorder_chapters(course_id, reorder_data, session)
+    return await reorder_chapters(situation_id, reorder_data, session)
 
 # 語句相關路由
 @router.get('/chapter/{chapter_id}/sentence/list', response_model=SentenceListResponse)
