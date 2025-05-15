@@ -4,6 +4,7 @@ from typing import List, Optional
 from sqlmodel import Field, Relationship, SQLModel
 import uuid
 
+import src
 from src.auth.models import User
 
 class SpeakerRole(str, Enum):
@@ -61,38 +62,38 @@ class Sentence(SQLModel, table=True):
 
     # Relationships
     chapter: Chapter = Relationship(back_populates="sentences")
-    practice_records: List["PracticeRecord"] = Relationship(back_populates="sentence")
+    # practice_records: List["PracticeRecord"] = Relationship(back_populates="sentence")
 
-class PracticeRecord(SQLModel, table=True):
-    """練習記錄表"""
-    __tablename__ = "practice_records"
+# class PracticeRecord(SQLModel, table=True):
+#     """練習記錄表"""
+#     __tablename__ = "practice_records"
 
-    practice_record_id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
-    user_id: uuid.UUID = Field(foreign_key="users.user_id")
-    sentence_id: uuid.UUID = Field(foreign_key="sentences.sentence_id")
-    score: Optional[float] = None
-    begin_time: datetime.datetime = Field(default_factory=datetime.datetime.now)
-    end_time: Optional[datetime.datetime] = None
-    audio_path: Optional[str] = None
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+#     practice_record_id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+#     user_id: uuid.UUID = Field(foreign_key="users.user_id")
+#     sentence_id: uuid.UUID = Field(foreign_key="sentences.sentence_id")
+#     score: Optional[float] = None
+#     begin_time: datetime.datetime = Field(default_factory=datetime.datetime.now)
+#     end_time: Optional[datetime.datetime] = None
+#     audio_path: Optional[str] = None
+#     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
-    # Relationships
-    user: "src.auth.models.User" = Relationship(back_populates="practice_records")
-    sentence: Sentence = Relationship(back_populates="practice_records")
-    feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
+#     # Relationships
+#     user: "src.auth.models.User" = Relationship(back_populates="practice_records")
+#     sentence: Sentence = Relationship(back_populates="practice_records")
+#     feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
 
-class PracticeFeedback(SQLModel, table=True):
-    """練習回饋表"""
-    __tablename__ = "practice_feedbacks"
+# class PracticeFeedback(SQLModel, table=True):
+#     """練習回饋表"""
+#     __tablename__ = "practice_feedbacks"
 
-    feedback_id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
-    practice_record_id: uuid.UUID = Field(foreign_key="practice_records.practice_record_id", unique=True)
-    therapist_id: uuid.UUID = Field(foreign_key="users.user_id")
-    content: str
-    pronunciation_accuracy: Optional[float] = None
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
-    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+#     feedback_id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+#     practice_record_id: uuid.UUID = Field(foreign_key="practice_records.practice_record_id", unique=True)
+#     therapist_id: uuid.UUID = Field(foreign_key="users.user_id")
+#     content: str
+#     pronunciation_accuracy: Optional[float] = None
+#     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+#     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
-    # Relationships
-    practice_record: PracticeRecord = Relationship(back_populates="feedback")
-    therapist: "src.auth.models.User" = Relationship(sa_relationship_kwargs={"foreign_keys": [therapist_id]})
+#     # Relationships
+#     practice_record: PracticeRecord = Relationship(back_populates="feedback")
+#     therapist: "src.auth.models.User" = Relationship(sa_relationship_kwargs={"foreign_keys": [therapist_id]})

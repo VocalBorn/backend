@@ -45,38 +45,38 @@ class User(SQLModel, table=True):
     
     # Relationships
     account: Account = Relationship(back_populates="user")
-    practice_records: List["src.course.models.PracticeRecord"] = Relationship(back_populates="user")
+    # practice_records: List["src.course.models.PracticeRecord"] = Relationship(back_populates="user")
     # 如果用戶是治療師，則有客戶列表
-    clients: List["TherapistClient"] = Relationship(
-        back_populates="therapist", 
-        sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.therapist_id"}
-    )
-    # 如果用戶是客戶，則有治療師列表
-    therapists: List["TherapistClient"] = Relationship(
-        back_populates="client", 
-        sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.client_id"}
-    )
+    # clients: List["TherapistClient"] = Relationship(
+    #     back_populates="therapist", 
+    #     sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.therapist_id"}
+    # )
+    # # 如果用戶是客戶，則有治療師列表
+    # therapists: List["TherapistClient"] = Relationship(
+    #     back_populates="client", 
+    #     sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.client_id"}
+    # )
     # 用戶常用詞彙
     user_words: List["UserWord"] = Relationship(back_populates="user")
 
-class TherapistClient(SQLModel, table=True):
-    """治療師和客戶的多對多關係表"""
-    __tablename__ = "therapist_clients"
+# class TherapistClient(SQLModel, table=True):
+#     """治療師和客戶的多對多關係表"""
+#     __tablename__ = "therapist_clients"
     
-    id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
-    therapist_id: uuid.UUID = Field(foreign_key="users.user_id")
-    client_id: uuid.UUID = Field(foreign_key="users.user_id")
-    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
+#     id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+#     therapist_id: uuid.UUID = Field(foreign_key="users.user_id")
+#     client_id: uuid.UUID = Field(foreign_key="users.user_id")
+#     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     
-    # Relationships
-    therapist: "User" = Relationship(
-        back_populates="clients", 
-        sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.therapist_id"}
-    )
-    client: "User" = Relationship(
-        back_populates="therapists", 
-        sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.client_id"}
-    )
+#     # Relationships
+#     therapist: "User" = Relationship(
+#         back_populates="clients", 
+#         sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.therapist_id"}
+#     )
+#     client: "User" = Relationship(
+#         back_populates="therapists", 
+#         sa_relationship_kwargs={"primaryjoin": "User.user_id==TherapistClient.client_id"}
+#     )
 
 class UserWord(SQLModel, table=True):
     """使用者常用詞彙表"""
