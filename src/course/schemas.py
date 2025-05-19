@@ -61,8 +61,6 @@ class ChapterCreate(BaseModel):
     sequence_number: int
     video_url: Optional[str] = None
     video_path: Optional[str] = None
-    video_duration: Optional[float] = None
-    video_format: Optional[str] = None
 
     class Config:
         json_schema_extra = {
@@ -71,8 +69,6 @@ class ChapterCreate(BaseModel):
                 "description": "學習在餐廳用餐時的常用對話，包含點餐、詢問菜品和結帳等情境",
                 "sequence_number": 1,
                 "video_url": "https://example.com/videos/restaurant_order.mp4",
-                "video_duration": 120.5,
-                "video_format": "mp4"
             }
         }
 
@@ -92,8 +88,6 @@ class ChapterUpdate(BaseModel):
                 "description": "學習更進階的餐廳對話，包含特殊需求和處理問題的情境",
                 "sequence_number": 2,
                 "video_url": "https://example.com/videos/restaurant_advanced.mp4",
-                "video_duration": 180.3,
-                "video_format": "mp4"
             }
         }
 
@@ -129,9 +123,6 @@ class ChapterResponse(BaseModel):
     description: Optional[str]
     sequence_number: int
     video_url: Optional[str]
-    video_path: Optional[str]
-    video_duration: Optional[float]
-    video_format: Optional[str]
     created_at: datetime
     updated_at: datetime
 
@@ -144,8 +135,6 @@ class ChapterResponse(BaseModel):
                 "description": "學習在餐廳用餐時的常用對話，包含點餐、詢問菜品和結帳等情境",
                 "sequence_number": 1,
                 "video_url": "https://example.com/videos/restaurant_order.mp4",
-                "video_duration": 120.5,
-                "video_format": "mp4",
                 "created_at": "2025-05-01T06:04:16.148321",
                 "updated_at": "2025-05-01T06:04:16.148463"
             }
@@ -223,14 +212,12 @@ class SentenceResponse(BaseModel):
 # PracticeRecord Schemas
 class PracticeRecordCreate(BaseModel):
     sentence_id: UUID
-    score: Optional[float] = None
     audio_path: Optional[str] = None
 
     class Config:
         json_schema_extra = {
             "example": {
                 "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
-                "score": 85.5,
                 "audio_path": "/storage/audio/user_recording_123.mp3"
             }
         }
@@ -239,7 +226,6 @@ class PracticeRecordResponse(BaseModel):
     practice_record_id: UUID
     user_id: UUID
     sentence_id: UUID
-    score: Optional[float]
     begin_time: datetime
     end_time: Optional[datetime]
     audio_path: Optional[str]
@@ -251,60 +237,10 @@ class PracticeRecordResponse(BaseModel):
                 "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
                 "user_id": "550e8400-e29b-41d4-a716-446655440005",
                 "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
-                "score": 85.5,
                 "begin_time": "2025-05-01T06:10:00.000000",
                 "end_time": "2025-05-01T06:10:30.000000",
                 "audio_path": "/storage/audio/user_recording_123.mp3",
                 "created_at": "2025-05-01T06:10:30.000000"
-            }
-        }
-
-# PracticeFeedback Schemas
-class PracticeFeedbackCreate(BaseModel):
-    practice_record_id: UUID
-    content: str
-    pronunciation_accuracy: Optional[float] = None
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
-                "content": "發音整體良好，但「麵」的發音還可以再改進。",
-                "pronunciation_accuracy": 80.0
-            }
-        }
-
-class PracticeFeedbackUpdate(BaseModel):
-    content: Optional[str] = None
-    pronunciation_accuracy: Optional[float] = None
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "content": "發音整體良好，但「麵」的發音還需要注意音調。",
-                "pronunciation_accuracy": 82.5
-            }
-        }
-
-class PracticeFeedbackResponse(BaseModel):
-    feedback_id: UUID
-    practice_record_id: UUID
-    therapist_id: UUID
-    content: str
-    pronunciation_accuracy: Optional[float]
-    created_at: datetime
-    updated_at: datetime
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "feedback_id": "550e8400-e29b-41d4-a716-446655440006",
-                "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
-                "therapist_id": "550e8400-e29b-41d4-a716-446655440007",
-                "content": "發音整體良好，但「麵」的發音還可以再改進。",
-                "pronunciation_accuracy": 80.0,
-                "created_at": "2025-05-01T06:15:00.000000",
-                "updated_at": "2025-05-01T06:15:00.000000"
             }
         }
 
@@ -395,22 +331,3 @@ class PracticeRecordListResponse(BaseModel):
             }
         }
 
-class PracticeFeedbackListResponse(BaseModel):
-    total: int
-    practice_feedbacks: List[PracticeFeedbackResponse]
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "total": 1,
-                "practice_feedbacks": [{
-                    "feedback_id": "550e8400-e29b-41d4-a716-446655440006",
-                    "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
-                    "therapist_id": "550e8400-e29b-41d4-a716-446655440007",
-                    "content": "發音整體良好，但「麵」的發音還可以再改進。",
-                    "pronunciation_accuracy": 80.0,
-                    "created_at": "2025-05-01T06:15:00.000000",
-                    "updated_at": "2025-05-01T06:15:00.000000"
-                }]
-            }
-        }

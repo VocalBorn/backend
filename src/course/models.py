@@ -34,9 +34,7 @@ class Chapter(SQLModel, table=True):
     chapter_name: str = Field(index=True)
     description: Optional[str] = None
     sequence_number: int
-    # 新增影片相關欄位
     video_url: Optional[str] = None
-    video_duration: Optional[float] = None  # 秒數
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
@@ -54,7 +52,6 @@ class Sentence(SQLModel, table=True):
     speaker_role: SpeakerRole
     role_description: Optional[str] = None
     content: str
-    # 新增時間點欄位
     start_time: Optional[float] = None  # 在影片中的開始時間（秒）
     end_time: Optional[float] = None    # 在影片中的結束時間（秒）
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
