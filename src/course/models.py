@@ -64,23 +64,20 @@ class Sentence(SQLModel, table=True):
     chapter: Chapter = Relationship(back_populates="sentences")
     # practice_records: List["PracticeRecord"] = Relationship(back_populates="sentence")
 
-# class PracticeRecord(SQLModel, table=True):
-#     """練習記錄表"""
-#     __tablename__ = "practice_records"
+class PracticeRecord(SQLModel, table=True):
+    """練習記錄表"""
+    __tablename__ = "practice_records"
 
-#     practice_record_id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
-#     user_id: uuid.UUID = Field(foreign_key="users.user_id")
-#     sentence_id: uuid.UUID = Field(foreign_key="sentences.sentence_id")
-#     score: Optional[float] = None
-#     begin_time: datetime.datetime = Field(default_factory=datetime.datetime.now)
-#     end_time: Optional[datetime.datetime] = None
-#     audio_path: Optional[str] = None
-#     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+    practice_record_id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+    user_id: uuid.UUID = Field(foreign_key="users.user_id")
+    sentence_id: uuid.UUID = Field(foreign_key="sentences.sentence_id")
+    audio_path: Optional[str] = None
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
-#     # Relationships
-#     user: "src.auth.models.User" = Relationship(back_populates="practice_records")
-#     sentence: Sentence = Relationship(back_populates="practice_records")
-#     feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
+    # Relationships
+    user: "User" = Relationship(back_populates="practice_records")
+    sentence: Sentence = Relationship(back_populates="practice_records")
+    # feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
 
 # class PracticeFeedback(SQLModel, table=True):
 #     """練習回饋表"""
