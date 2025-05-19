@@ -4,9 +4,6 @@ from typing import List, Optional
 from sqlmodel import Field, Relationship, SQLModel
 import uuid
 
-import src
-from src.auth.models import User
-
 class SpeakerRole(str, Enum):
     SELF = "self"      # 自己
     OTHER = "other"    # 對方
@@ -59,7 +56,7 @@ class Sentence(SQLModel, table=True):
 
     # Relationships
     chapter: Chapter = Relationship(back_populates="sentences")
-    # practice_records: List["PracticeRecord"] = Relationship(back_populates="sentence")
+    practice_records: List["PracticeRecord"] = Relationship(back_populates="sentence")
 
 class PracticeRecord(SQLModel, table=True):
     """練習記錄表"""

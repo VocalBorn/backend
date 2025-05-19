@@ -12,7 +12,7 @@ from src.course.schemas import (
 )
 
 async def create_sentence(
-    chapter_id: int,
+    chapter_id: str,
     sentence_data: SentenceCreate,
     session: Session
 ) -> SentenceResponse:
@@ -27,7 +27,9 @@ async def create_sentence(
         sentence_name=sentence_data.sentence_name,
         speaker_role=sentence_data.speaker_role,
         role_description=sentence_data.role_description,
-        content=sentence_data.content
+        content=sentence_data.content,
+        start_time=sentence_data.start_time,
+        end_time=sentence_data.end_time
     )
     
     session.add(sentence)
@@ -42,11 +44,13 @@ async def create_sentence(
         content=sentence.content,
         created_at=sentence.created_at,
         role_description=sentence.role_description,
-        updated_at=sentence.updated_at
+        updated_at=sentence.updated_at,
+        start_time=sentence.start_time,
+        end_time=sentence.end_time
     )
 
 async def get_sentence(
-    sentence_id: int,
+    sentence_id: str,
     session: Session
 ) -> SentenceResponse:
     """取得特定語句"""
@@ -62,12 +66,14 @@ async def get_sentence(
         content=sentence.content,
         created_at=sentence.created_at,
         role_description=sentence.role_description,
-        updated_at=sentence.updated_at
+        updated_at=sentence.updated_at,
+        start_time=sentence.start_time,
+        end_time=sentence.end_time
     )
 
 async def list_sentences(
     session: Session,
-    chapter_id: int,
+    chapter_id: str,
     skip: int = 0,
     limit: int = 10
 ) -> SentenceListResponse:
@@ -88,14 +94,16 @@ async def list_sentences(
                 content=sentence.content,
                 created_at=sentence.created_at,
                 role_description=sentence.role_description,
-                updated_at=sentence.updated_at
+                updated_at=sentence.updated_at,
+                start_time=sentence.start_time,
+                end_time=sentence.end_time
             )
             for sentence in sentences
         ]
     )
 
 async def update_sentence(
-    sentence_id: int,
+    sentence_id: str,
     sentence_data: SentenceUpdate,
     session: Session
 ) -> SentenceResponse:
@@ -110,6 +118,10 @@ async def update_sentence(
         sentence.speaker_role = sentence_data.speaker_role
     if sentence_data.content is not None:
         sentence.content = sentence_data.content
+    if sentence_data.start_time is not None:
+        sentence.start_time = sentence_data.start_time
+    if sentence_data.end_time is not None:
+        sentence.end_time = sentence_data.end_time
     
     sentence.updated_at = datetime.datetime.now()
     session.add(sentence)
@@ -124,11 +136,13 @@ async def update_sentence(
         content=sentence.content,
         created_at=sentence.created_at,
         role_description=sentence.role_description,
-        updated_at=sentence.updated_at
+        updated_at=sentence.updated_at,
+        start_time=sentence.start_time,
+        end_time=sentence.end_time
     )
 
 async def delete_sentence(
-    sentence_id: int,
+    sentence_id: str,
     session: Session
 ):
     """刪除語句"""

@@ -104,7 +104,7 @@ async def list_chapters_route(
 
 @router.get('/chapter/{chapter_id}', response_model=ChapterResponse)
 async def get_chapter_route(
-    chapter_id: int,
+    chapter_id: str,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
@@ -112,7 +112,7 @@ async def get_chapter_route(
 
 @router.post('/{situation_id}/chapter/create', response_model=ChapterResponse)
 async def create_chapter_route(
-    situation_id: int,
+    situation_id: str,
     chapter_data: ChapterCreate,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
@@ -121,7 +121,7 @@ async def create_chapter_route(
 
 @router.patch('/chapter/{chapter_id}', response_model=ChapterResponse)
 async def update_chapter_route(
-    chapter_id: int,
+    chapter_id: str,
     chapter_data: ChapterUpdate,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
@@ -130,7 +130,7 @@ async def update_chapter_route(
 
 @router.delete('/chapter/{chapter_id}')
 async def delete_chapter_route(
-    chapter_id: int,
+    chapter_id: str,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
@@ -146,9 +146,9 @@ async def reorder_chapters_route(
     return await reorder_chapters(situation_id, reorder_data, session)
 
 # 語句相關路由
-@router.get('/chapter/{chapter_id}/sentence/list', response_model=SentenceListResponse)
+@router.get('/chapters/{chapter_id}/sentences', response_model=SentenceListResponse)
 async def list_sentences_route(
-    chapter_id: int,
+    chapter_id: str,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)],
     skip: int = 0,
@@ -158,15 +158,15 @@ async def list_sentences_route(
 
 @router.get('/sentence/{sentence_id}', response_model=SentenceResponse)
 async def get_sentence_route(
-    sentence_id: int,
+    sentence_id: str,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):
     return await get_sentence(sentence_id, session)
 
-@router.post('/chapter/{chapter_id}/sentence/create', response_model=SentenceResponse)
+@router.post('/chapters/{chapter_id}/sentences', response_model=SentenceResponse)
 async def create_sentence_route(
-    chapter_id: int,
+    chapter_id: str,
     sentence_data: SentenceCreate,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
@@ -175,7 +175,7 @@ async def create_sentence_route(
 
 @router.patch('/sentence/{sentence_id}', response_model=SentenceResponse)
 async def update_sentence_route(
-    sentence_id: int,
+    sentence_id: str,
     sentence_data: SentenceUpdate,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
@@ -184,7 +184,7 @@ async def update_sentence_route(
 
 @router.delete('/sentence/{sentence_id}')
 async def delete_sentence_route(
-    sentence_id: int,
+    sentence_id: str,
     session: Annotated[Session, Depends(get_session)],
     email: Annotated[str, Depends(verify_token)]
 ):

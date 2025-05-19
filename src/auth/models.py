@@ -5,6 +5,8 @@ import uuid
 from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel
 
+from src.course.models import PracticeRecord
+
 class UserRole(str, Enum):
     ADMIN = "admin"
     CLIENT = "client"
@@ -45,7 +47,7 @@ class User(SQLModel, table=True):
     
     # Relationships
     account: Account = Relationship(back_populates="user")
-    # practice_records: List["src.course.models.PracticeRecord"] = Relationship(back_populates="user")
+    practice_records: List["PracticeRecord"] = Relationship(back_populates="user")
     # 如果用戶是治療師，則有客戶列表
     # clients: List["TherapistClient"] = Relationship(
     #     back_populates="therapist", 

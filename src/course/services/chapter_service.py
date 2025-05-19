@@ -27,7 +27,8 @@ async def create_chapter(
         situation_id=situation_id,
         chapter_name=chapter_data.chapter_name,
         description=chapter_data.description,
-        sequence_number=chapter_data.sequence_number
+        sequence_number=chapter_data.sequence_number,
+        video_url=chapter_data.video_url
     )
     
     session.add(chapter)
@@ -41,7 +42,8 @@ async def create_chapter(
         description=chapter.description,
         sequence_number=chapter.sequence_number,
         created_at=chapter.created_at,
-        updated_at=chapter.updated_at
+        updated_at=chapter.updated_at,
+        video_url=chapter.video_url
     )
 
 async def get_chapter(
@@ -60,7 +62,8 @@ async def get_chapter(
         description=chapter.description,
         sequence_number=chapter.sequence_number,
         created_at=chapter.created_at,
-        updated_at=chapter.updated_at
+        updated_at=chapter.updated_at,
+        video_url=chapter.video_url
     )
 
 async def list_chapters(
@@ -85,7 +88,8 @@ async def list_chapters(
                 description=chapter.description,
                 sequence_number=chapter.sequence_number,
                 created_at=chapter.created_at,
-                updated_at=chapter.updated_at
+                updated_at=chapter.updated_at,
+                video_url=chapter.video_url
             )
             for chapter in chapters
         ]
@@ -107,6 +111,8 @@ async def update_chapter(
         chapter.description = chapter_data.description
     if chapter_data.sequence_number is not None:
         chapter.sequence_number = chapter_data.sequence_number
+    if chapter_data.video_url is not None:
+        chapter.video_url = chapter_data.video_url
     
     chapter.updated_at = datetime.datetime.now()
     session.add(chapter)
@@ -120,7 +126,8 @@ async def update_chapter(
         description=chapter.description,
         sequence_number=chapter.sequence_number,
         created_at=chapter.created_at,
-        updated_at=chapter.updated_at
+        updated_at=chapter.updated_at,
+        video_url=chapter.video_url
     )
 
 async def delete_chapter(
