@@ -5,7 +5,7 @@ from uuid import UUID
 
 from src.course.models import SpeakerRole
 
-# Situation Schemas (原Course)
+# Situation Schemas
 class SituationCreate(BaseModel):
     situation_name: str
     description: Optional[str] = None
