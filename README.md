@@ -28,27 +28,51 @@ docker run -d -p 5001:5000 vocalborn_backend
 在VSCode中安裝Draw.io Integration套件，並開啟drawio檔案
 
 ## 資料庫版本控制
-使用 Alembic 進行資料庫版本控制，請參考以下指令：
-### 初始化 Alembic
-```
-alembic init alembic
-```
-### 建立新的遷移檔
-```
-alembic revision --autogenerate -m "描述"
-```
-### 執行遷移
-```
+使用 Alembic 進行資料庫版本控制。本專案完全依賴 Alembic 來管理資料庫結構的變更，以確保所有變更都被正確追蹤和版本控制。
+
+### 新開發環境設置
+1. 確保已正確設定 `.env` 檔案中的資料庫連接資訊
+2. 執行遷移以建立資料庫結構：
+```bash
 alembic upgrade head
 ```
-### 回滾遷移
+
+### 資料庫變更流程
+當需要修改資料庫結構時（如新增表格、修改欄位等），請遵循以下步驟：
+
+1. 在程式碼中修改 SQLModel 模型定義（models.py）
+2. 生成新的遷移檔：
+```bash
+alembic revision --autogenerate -m "描述變更內容"
 ```
-alembic downgrade -1
+3. 檢查生成的遷移檔案（在 alembic/versions/ 目錄下）確保正確性
+4. 應用變更：
+```bash
+alembic upgrade head
 ```
-### 查看目前版本
-```
+
+### 常用指令參考
+```bash
+# 查看目前版本
 alembic current
+
+# 檢視遷移歷史
+alembic history
+
+# 回滾到上一個版本
+alembic downgrade -1
+
+# 回滾到特定版本
+alembic downgrade <版本號>
+
+# 預覽將生成的 SQL（不執行）
+alembic upgrade head --sql
 ```
+
+### 注意事項
+- 所有資料庫結構變更都必須通過 Alembic 遷移來進行
+- 遷移檔案應該被加入版本控制系統
+- 建議在提交程式碼前先在本地測試遷移是否能正常運作
 
 ## Conventional Commits：
 - feat: 新功能
