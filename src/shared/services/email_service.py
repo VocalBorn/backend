@@ -22,13 +22,94 @@ class EmailTemplates:
             str HTML 格式的郵件內容
         """
         return f'''
-        <html>
-          <body>
-            <h2>歡迎註冊！</h2>
-            <p>請點擊下方連結驗證您的電子郵件：</p>
-            <p><a href="{verification_url}">{verification_url}</a></p>
-            <p>此連結將在 24 小時後失效。</p>
-          </body>
+        <!DOCTYPE html>
+        <html lang="zh-TW">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: 'Helvetica Neue', Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                    margin: 0;
+                    padding: 20px;
+                    background-color: #f4f4f4;
+                }}
+                .card {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 40px;
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    text-align: center;
+                }}
+                .logo {{
+                    width: 200px;
+                    margin-bottom: 30px;
+                }}
+                h2 {{
+                    color: #333333;
+                    font-size: 24px;
+                    margin: 0 0 20px 0;
+                }}
+                p {{
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                    color: #666666;
+                }}
+                .button {{
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #479AC7;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    margin: 20px 0;
+                }}
+                .button:hover {{
+                    background-color: #357BA3;
+                }}
+                .warning {{
+                    font-size: 14px;
+                    margin-top: 20px;
+                }}
+                .footer {{
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 1px solid #eeeeee;
+                    font-size: 12px;
+                    color: #999999;
+                }}
+                .url-text {{
+                    word-break: break-all;
+                    color: #666666;
+                    font-size: 12px;
+                    margin: 20px 0;
+                    padding: 10px;
+                    background-color: #f8f9fa;
+                    border-radius: 4px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h2>請驗證您的電子郵件</h2>
+                <p>我們已寄出一封驗證信到您的信箱，請點擊下方按鈕來啟用您的帳號：</p>
+                <a href="{verification_url}" class="button">驗證電子郵件</a>
+                <div class="url-text">
+                    如果按鈕無法正常運作，請複製以下連結至瀏覽器：<br>
+                    {verification_url}
+                </div>
+                <p class="warning">請注意：此驗證連結將在 24 小時後失效</p>
+                <div class="footer">
+                    <p>此為系統自動發送的郵件，請勿直接回覆</p>
+                    <p>&copy; 2025 VocalBorn. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
         </html>
         '''
 
@@ -44,14 +125,102 @@ class EmailTemplates:
             str: HTML 格式的郵件內容
         """
         return f'''
-        <html>
-          <body>
-            <h2>重設密碼請求</h2>
-            <p>我們收到了您重設密碼的請求。如果這不是您本人的操作，請忽略此郵件。</p>
-            <p>請點擊下方連結重設您的密碼：</p>
-            <p><a href="{reset_url}">{reset_url}</a></p>
-            <p>此連結將在 1 小時後失效。</p>
-          </body>
+        <!DOCTYPE html>
+        <html lang="zh-TW">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {{
+                    font-family: 'Helvetica Neue', Arial, sans-serif;
+                    line-height: 1.6;
+                    color: #333333;
+                    margin: 0;
+                    padding: 20px;
+                    background-color: #f4f4f4;
+                }}
+                .card {{
+                    max-width: 600px;
+                    margin: 0 auto;
+                    padding: 40px;
+                    background-color: #ffffff;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    text-align: center;
+                }}
+                .logo {{
+                    width: 200px;
+                    margin-bottom: 30px;
+                }}
+                h2 {{
+                    color: #333333;
+                    font-size: 24px;
+                    margin: 0 0 20px 0;
+                }}
+                p {{
+                    font-size: 16px;
+                    margin-bottom: 20px;
+                    color: #666666;
+                }}
+                .button {{
+                    display: inline-block;
+                    padding: 10px 20px;
+                    background-color: #479AC7;
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 5px;
+                    font-size: 14px;
+                    margin: 20px 0;
+                }}
+                .button:hover {{
+                    background-color: #357BA3;
+                }}
+                .warning {{
+                    background-color: #fff3cd;
+                    border-left: 4px solid #ffc107;
+                    padding: 15px;
+                    margin: 20px 0;
+                    text-align: left;
+                }}
+                .footer {{
+                    margin-top: 40px;
+                    padding-top: 20px;
+                    border-top: 1px solid #eeeeee;
+                    font-size: 12px;
+                    color: #999999;
+                }}
+                .url-text {{
+                    word-break: break-all;
+                    color: #666666;
+                    font-size: 12px;
+                    margin: 20px 0;
+                    padding: 10px;
+                    background-color: #f8f9fa;
+                    border-radius: 4px;
+                }}
+            </style>
+        </head>
+        <body>
+            <div class="card">
+                <h2>重設密碼請求</h2>
+                <div class="warning">
+                    <p style="margin: 0;">⚠️ 安全提醒：如果這不是您本人的操作，請立即聯繫我們的支援團隊。</p>
+                </div>
+                <p>您好！</p>
+                <p>我們收到了您重設密碼的請求。請點擊下方按鈕來重設您的密碼：</p>
+                <a href="{reset_url}" class="button">重設密碼</a>
+                <div class="url-text">
+                    如果按鈕無法正常運作，請複製以下連結至瀏覽器：<br>
+                    {reset_url}
+                </div>
+                <p class="warning"">請注意：此連結將在 1 小時後失效</p>
+                <div class="footer">
+                    <p>此為系統自動發送的郵件，請勿直接回覆</p>
+                    <p>如果您沒有要求重設密碼，請忽略此郵件</p>
+                    <p>&copy; 2025 VocalBorn. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
         </html>
         '''
 
