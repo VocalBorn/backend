@@ -5,10 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.auth.router import router as auth_router
 from src.course.router import router as course_router
-<<<<<<< HEAD
-=======
 from src.shared.database.database import create_db_and_tables
->>>>>>> origin/main
 
 # 系統啟動時建立資料庫連線
 @asynccontextmanager
