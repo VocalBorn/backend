@@ -27,6 +27,29 @@ docker run -d -p 5001:5000 vocalborn_backend
 ## 編輯Draw.io 檔案
 在VSCode中安裝Draw.io Integration套件，並開啟drawio檔案
 
+## 資料庫版本控制
+使用 Alembic 進行資料庫版本控制，請參考以下指令：
+### 初始化 Alembic
+```
+alembic init alembic
+```
+### 建立新的遷移檔
+```
+alembic revision --autogenerate -m "描述"
+```
+### 執行遷移
+```
+alembic upgrade head
+```
+### 回滾遷移
+```
+alembic downgrade -1
+```
+### 查看目前版本
+```
+alembic current
+```
+
 ## Conventional Commits：
 - feat: 新功能
 - fix: 修復 bug
