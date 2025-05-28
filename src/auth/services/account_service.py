@@ -4,7 +4,13 @@ from sqlmodel import Session, select
 from pydantic import EmailStr, TypeAdapter
 
 from src.auth.models import Account, User, EmailVerification
-from src.auth.schemas import RegisterRequest, LoginRequest, LoginResponse, UpdateUserRequest
+from src.auth.schemas import (
+    RegisterRequest, 
+    LoginRequest, 
+    LoginResponse, 
+    UpdateUserRequest,
+    UserResponse
+)
 from src.auth.services.jwt_service import create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from src.auth.services.password_service import get_password_hash, verify_password
 from src.auth.services.email_verification_service import generate_verification_token, send_verification_email
@@ -178,3 +184,38 @@ async def update_password(email: str, old_password: str, new_password: str, sess
             status_code=500,
             detail=f"更新密碼失敗: {str(e)}"
         )
+
+async def get_user_profile(email: str, session: Session) -> UserResponse:
+    """取得用戶資料"""
+    # 檢查使用者是否存在
+    account = session.exec(
+        select(Account).where(Account.email == email)
+    ).first()
+    if not account:
+        raise HTTPException(
+            status_code=404,
+            detail="使用者不存在"
+        )
+
+    # 取得使用者資料
+    user = session.exec(
+        select(User).where(User.account_id == account.account_id)
+    ).first()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="使用者資料不存在"
+        )
+
+    # 將資料轉換為響應格式
+    return UserResponse(
+        user_id=user.user_id,
+        account_id=user.account_id,
+        name=user.name,
+        gender=user.gender,
+        age=user.age,
+        phone=user.phone,
+        role=user.role,
+        created_at=user.created_at,
+        updated_at=user.updated_at
+    )

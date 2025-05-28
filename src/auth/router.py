@@ -10,7 +10,8 @@ from src.auth.schemas import (
     ForgotPasswordRequest,
     ResetPasswordRequest,
     UpdateUserRequest,
-    UpdatePasswordRequest
+    UpdatePasswordRequest,
+    UserResponse
 )
 
 from src.auth.services.account_service import (
@@ -18,6 +19,7 @@ from src.auth.services.account_service import (
     login as account_login,
     update_password,
     update_user as account_update,
+    get_user_profile,
 )
 from src.auth.services.email_verification_service import resend_verification, verify_email
 from src.auth.services.jwt_service import verify_token
@@ -94,3 +96,11 @@ async def update_password_route(
     session: Annotated[Session, Depends(get_session)]
 ):
     return await update_password(email, request.old_password, request.new_password, session)
+
+@router.get('/profile', response_model=UserResponse)
+async def get_profile_route(
+    email: Annotated[str, Depends(verify_token)],
+    session: Annotated[Session, Depends(get_session)]
+):
+    """取得當前登入用戶的資料"""
+    return await get_user_profile(email, session)
