@@ -111,7 +111,7 @@ async def list_chapters_route(
     skip: int = 0,
     limit: int = 10
 ):
-    """取得取章節列表（需要檢視課程權限）"""
+    """取得章節列表（需要檢視課程權限）"""
     return await list_chapters(session=session, situation_id=situation_id, skip=skip, limit=limit)
 
 @router.get('/chapter/{chapter_id}', response_model=ChapterResponse)
@@ -120,7 +120,7 @@ async def get_chapter_route(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated["User", Depends(RequireViewCourses)]
 ):
-    """取得取章節詳情（需要檢視課程權限）"""
+    """取得章節詳情（需要檢視課程權限）"""
     return await get_chapter(chapter_id, session)
 
 @router.post('/{situation_id}/chapter/create', response_model=ChapterResponse)
@@ -171,7 +171,7 @@ async def list_sentences_route(
     skip: int = 0,
     limit: int = 10
 ):
-    """取得取語句列表（需要檢視課程權限）"""
+    """取得語句列表（需要檢視課程權限）"""
     return await list_sentences(session=session, chapter_id=chapter_id, skip=skip, limit=limit)
 
 @router.get('/sentence/{sentence_id}', response_model=SentenceResponse)
@@ -180,7 +180,7 @@ async def get_sentence_route(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated["User", Depends(RequireViewCourses)]
 ):
-    """取得取語句詳情（需要檢視課程權限）"""
+    """取得語句詳情（需要檢視課程權限）"""
     return await get_sentence(sentence_id, session)
 
 @router.post('/chapters/{chapter_id}/sentences', response_model=SentenceResponse)
