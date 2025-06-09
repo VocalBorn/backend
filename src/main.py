@@ -12,23 +12,10 @@ from src.course.router import router as course_router
 async def lifespan(app: FastAPI):
     yield
 
-api_description = """
-## VocalBorn 語音復健學習系統 API
 
-這是一個專為語音復健設計的學習系統，提供完整的用戶管理、課程管理和學習進度追蹤功能。
-
-### 主要功能
-
-* **用戶管理**: 註冊、登入、個人資料管理
-* **權限系統**: 管理員、語言治療師、一般用戶三種角色
-* **課程管理**: 情境、章節、語句的完整管理
-* **學習追蹤**: 練習記錄和進度追蹤
-
-"""
 
 app = FastAPI(
     title="VocalBorn API",
-    description=api_description,
     version="1.0.0",
     contact={
         "name": "VocalBorn 開發團隊",
