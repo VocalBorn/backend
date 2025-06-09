@@ -30,20 +30,6 @@ app = FastAPI(
             "description": "生產環境"
         }
     ],
-    tags_metadata=[
-        {
-            "name": "users",
-            "description": "用戶認證和個人資料管理相關操作",
-        },
-        {
-            "name": "管理員",
-            "description": "管理員專用功能，包含用戶管理和權限控制",
-        },
-        {
-            "name": "situations",
-            "description": "學習情境、章節和語句的管理",
-        }
-    ],
     lifespan=lifespan
 )
 app.include_router(auth_router)
