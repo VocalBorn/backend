@@ -358,3 +358,47 @@ class EmailVerificationConfirm(BaseModel):
                 "token": "123456"
             }
         }
+
+# 管理員相關 Schema
+class UpdateUserRoleRequest(BaseModel):
+    role: UserRole
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role": "therapist"
+            }
+        }
+
+class PermissionResponse(BaseModel):
+    role: UserRole
+    permissions: List[str]
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "role": "client",
+                "permissions": [
+                    "view_courses",
+                    "view_practice_records",
+                    "create_practice_records",
+                    "chat_with_therapist"
+                ]
+            }
+        }
+
+class UserStatsResponse(BaseModel):
+    total_users: int
+    clients: int
+    therapists: int
+    admins: int
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "total_users": 100,
+                "clients": 80,
+                "therapists": 15,
+                "admins": 5
+            }
+        }

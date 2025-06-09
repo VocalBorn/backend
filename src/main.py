@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.auth.router import router as auth_router
+from src.auth.admin_router import router as admin_router
 from src.course.router import router as course_router
 
 # 系統啟動時建立資料庫連線
@@ -13,6 +14,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 app.include_router(auth_router)
+app.include_router(admin_router)
 app.include_router(course_router)
 app.add_middleware(
     CORSMiddleware,

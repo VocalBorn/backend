@@ -1,3 +1,3 @@
-from src.course.router import router
+# Course module
 
-__all__ = ['router']
+__all__ = []

@@ -1,11 +1,12 @@
 import datetime
 from enum import Enum
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 import uuid
 from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel
 
-from src.course.models import PracticeRecord
+if TYPE_CHECKING:
+    from src.course.models import PracticeRecord
 
 class UserRole(str, Enum):
     ADMIN = "admin"
