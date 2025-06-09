@@ -24,10 +24,6 @@ class Permission:
     VIEW_PRACTICE_RECORDS = "view_practice_records"     # 檢視練習記錄
     CREATE_PRACTICE_RECORDS = "create_practice_records" # 創建練習記錄
     
-    # 溝通相關權限
-    CHAT_WITH_THERAPIST = "chat_with_therapist"         # 與治療師溝通
-    CHAT_WITH_CLIENT = "chat_with_client"               # 與客戶溝通
-    
     # 用戶管理權限
     MANAGE_USERS = "manage_users"                       # 管理用戶
     VIEW_ALL_USERS = "view_all_users"                   # 檢視所有用戶
@@ -41,14 +37,12 @@ class RolePermissions:
         Permission.VIEW_COURSES,
         Permission.VIEW_PRACTICE_RECORDS,
         Permission.CREATE_PRACTICE_RECORDS,
-        Permission.CHAT_WITH_THERAPIST,
     ]
     
     # 語言治療師權限：檢視課程且與使用者溝通
     THERAPIST_PERMISSIONS = [
         Permission.VIEW_COURSES,
         Permission.VIEW_PRACTICE_RECORDS,
-        Permission.CHAT_WITH_CLIENT,
     ]
     
     # 管理員權限：對課程進行編輯
@@ -58,8 +52,6 @@ class RolePermissions:
         Permission.DELETE_COURSES,
         Permission.CREATE_COURSES,
         Permission.VIEW_PRACTICE_RECORDS,
-        Permission.CHAT_WITH_THERAPIST,
-        Permission.CHAT_WITH_CLIENT,
         Permission.MANAGE_USERS,
         Permission.VIEW_ALL_USERS,
     ]
@@ -79,8 +71,8 @@ async def get_current_user(
     email: str = Depends(verify_token),
     session: Session = Depends(get_session)
 ):
-    """獲取當前用戶"""
-    from src.auth.models import User  # 運行時導入避免循環導入
+    """取得當前用戶"""
+    from src.auth.models import User
     
     account = session.exec(
         select(Account).where(Account.email == email)
@@ -164,8 +156,6 @@ def require_role(required_roles: List[UserRole]):
 # 常用的權限檢查依賴項
 RequireViewCourses = require_permission(Permission.VIEW_COURSES)
 RequireEditCourses = require_permission(Permission.EDIT_COURSES)
-RequireChatWithTherapist = require_permission(Permission.CHAT_WITH_THERAPIST)
-RequireChatWithClient = require_permission(Permission.CHAT_WITH_CLIENT)
 RequireManageUsers = require_permission(Permission.MANAGE_USERS)
 
 # 常用的角色檢查依賴項
