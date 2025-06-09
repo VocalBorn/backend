@@ -42,7 +42,7 @@ class User(SQLModel, table=True):
     gender: Optional[str] = Field(max_length=10)
     age: Optional[int] = Field(default=None)
     phone: Optional[str] = Field(max_length=20)
-    role: UserRole = Field(default=UserRole.CLIENT)
+    role: UserRole = Field(default=UserRole.CLIENT, nullable=False)
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     
