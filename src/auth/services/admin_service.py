@@ -7,8 +7,8 @@ from src.auth.models import UserRole, Account
 from src.auth.schemas import UserResponse
 
 async def get_all_users(session: Session) -> List[UserResponse]:
-    """獲取所有用戶列表"""
-    from src.auth.models import User  # 運行時導入避免循環導入
+    """取得所有用戶列表"""
+    from src.auth.models import User
     try:
         users = session.exec(select(User)).all()
         return [
@@ -28,7 +28,7 @@ async def get_all_users(session: Session) -> List[UserResponse]:
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"獲取用戶列表失敗: {str(e)}"
+            detail=f"取得用戶列表失敗: {str(e)}"
         )
 
 async def update_user_role(
@@ -37,7 +37,7 @@ async def update_user_role(
     session: Session
 ) -> UserResponse:
     """更新用戶角色"""
-    from src.auth.models import User  # 運行時導入避免循環導入
+    from src.auth.models import User
     try:
         # 查找用戶
         user = session.exec(
@@ -80,8 +80,8 @@ async def update_user_role(
         )
 
 async def get_users_by_role(role: UserRole, session: Session) -> List[UserResponse]:
-    """根據角色獲取用戶列表"""
-    from src.auth.models import User  # 運行時導入避免循環導入
+    """根據角色取得用戶列表"""
+    from src.auth.models import User 
     try:
         users = session.exec(
             select(User).where(User.role == role)
@@ -105,15 +105,15 @@ async def get_users_by_role(role: UserRole, session: Session) -> List[UserRespon
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"獲取角色用戶列表失敗: {str(e)}"
+            detail=f"取得角色用戶列表失敗: {str(e)}"
         )
 
 async def get_therapists(session: Session) -> List[UserResponse]:
-    """獲取所有語言治療師"""
+    """取得所有語言治療師"""
     return await get_users_by_role(UserRole.THERAPIST, session)
 
 async def get_clients(session: Session) -> List[UserResponse]:
-    """獲取所有一般用戶"""
+    """取得所有一般用戶"""
     return await get_users_by_role(UserRole.CLIENT, session)
 
 async def promote_to_therapist(user_id: str, session: Session) -> UserResponse:
