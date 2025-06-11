@@ -26,7 +26,7 @@ app = FastAPI(
             "description": "開發環境"
         },
         {
-            "url": "https://api.vocalborn.com",
+            "url": "https://api-vocalborn.r0930514.work",
             "description": "生產環境"
         }
     ],
