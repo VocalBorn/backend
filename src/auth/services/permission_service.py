@@ -24,6 +24,12 @@ class Permission:
     VIEW_PRACTICE_RECORDS = "view_practice_records"     # 檢視練習記錄
     CREATE_PRACTICE_RECORDS = "create_practice_records" # 創建練習記錄
     
+    # 治療師檔案權限
+    MANAGE_THERAPIST_PROFILE = "manage_therapist_profile"   # 管理治療師檔案
+    VIEW_THERAPIST_PROFILE = "view_therapist_profile"       # 檢視治療師檔案
+    ASSIGN_CLIENTS = "assign_clients"                       # 指派客戶
+    VIEW_ASSIGNED_CLIENTS = "view_assigned_clients"         # 檢視指派的客戶
+    
     # 用戶管理權限
     MANAGE_USERS = "manage_users"                       # 管理用戶
     VIEW_ALL_USERS = "view_all_users"                   # 檢視所有用戶
@@ -43,6 +49,9 @@ class RolePermissions:
     THERAPIST_PERMISSIONS = [
         Permission.VIEW_COURSES,
         Permission.VIEW_PRACTICE_RECORDS,
+        Permission.MANAGE_THERAPIST_PROFILE,
+        Permission.VIEW_THERAPIST_PROFILE,
+        Permission.VIEW_ASSIGNED_CLIENTS,
     ]
     
     # 管理員權限：對課程進行編輯
@@ -54,6 +63,10 @@ class RolePermissions:
         Permission.VIEW_PRACTICE_RECORDS,
         Permission.MANAGE_USERS,
         Permission.VIEW_ALL_USERS,
+        Permission.MANAGE_THERAPIST_PROFILE,
+        Permission.VIEW_THERAPIST_PROFILE,
+        Permission.ASSIGN_CLIENTS,
+        Permission.VIEW_ASSIGNED_CLIENTS,
     ]
     
     @classmethod

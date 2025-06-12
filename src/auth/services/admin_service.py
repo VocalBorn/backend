@@ -3,8 +3,9 @@ from fastapi import HTTPException
 from sqlmodel import Session, select
 from datetime import datetime
 
-from src.auth.models import UserRole, Account
+from src.auth.models import UserRole, Account, User
 from src.auth.schemas import UserResponse
+from src.auth.services.password_service import verify_password
 
 async def get_all_users(session: Session) -> List[UserResponse]:
     """取得所有用戶列表"""
@@ -127,3 +128,101 @@ async def promote_to_admin(user_id: str, session: Session) -> UserResponse:
 async def demote_to_client(user_id: str, session: Session) -> UserResponse:
     """將用戶降級為一般用戶"""
     return await update_user_role(user_id, UserRole.CLIENT, session)
+
+async def delete_user(user_id: str, admin_password: str, admin_user: User, session: Session) -> UserResponse:
+    """刪除用戶帳號（包含相關資料）"""
+    from src.auth.models import TherapistProfile, TherapistClient, UserWord, EmailVerification
+    
+    try:
+        # 驗證管理員密碼
+        admin_account = session.exec(
+            select(Account).where(Account.account_id == admin_user.account_id)
+        ).first()
+        
+        if not admin_account or not verify_password(admin_password, admin_account.password):
+            raise HTTPException(
+                status_code=401,
+                detail="管理員密碼驗證失敗"
+            )
+        
+        # 查找用戶
+        user = session.exec(
+            select(User).where(User.user_id == user_id)
+        ).first()
+        
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="用戶不存在"
+            )
+        
+        # 刪除相關的治療師-客戶關係（作為治療師）
+        therapist_client_relations_as_therapist = session.exec(
+            select(TherapistClient).where(TherapistClient.therapist_id == user_id)
+        ).all()
+        for relation in therapist_client_relations_as_therapist:
+            session.delete(relation)
+        
+        # 刪除相關的治療師-客戶關係（作為客戶）
+        therapist_client_relations_as_client = session.exec(
+            select(TherapistClient).where(TherapistClient.client_id == user_id)
+        ).all()
+        for relation in therapist_client_relations_as_client:
+            session.delete(relation)
+        
+        # 刪除治療師檔案（如果存在）
+        therapist_profile = session.exec(
+            select(TherapistProfile).where(TherapistProfile.user_id == user_id)
+        ).first()
+        if therapist_profile:
+            session.delete(therapist_profile)
+        
+        # 刪除用戶常用詞彙
+        user_words = session.exec(
+            select(UserWord).where(UserWord.user_id == user_id)
+        ).all()
+        for word in user_words:
+            session.delete(word)
+        
+        # 刪除郵件驗證記錄
+        email_verifications = session.exec(
+            select(EmailVerification).where(EmailVerification.account_id == user.account_id)
+        ).all()
+        for verification in email_verifications:
+            session.delete(verification)
+        
+        # 保存用戶信息以便返回
+        user_response = UserResponse(
+            user_id=user.user_id,
+            account_id=user.account_id,
+            name=user.name,
+            gender=user.gender,
+            age=user.age,
+            phone=user.phone,
+            role=user.role,
+            created_at=user.created_at,
+            updated_at=user.updated_at
+        )
+        
+        # 刪除用戶
+        session.delete(user)
+        
+        # 最後刪除帳號
+        account = session.exec(
+            select(Account).where(Account.account_id == user.account_id)
+        ).first()
+        if account:
+            session.delete(account)
+        
+        session.commit()
+        return user_response
+        
+    except HTTPException:
+        session.rollback()
+        raise
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"刪除用戶失敗: {str(e)}"
+        )

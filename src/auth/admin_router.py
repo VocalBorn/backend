@@ -8,10 +8,12 @@ from src.auth.schemas import (
     UserResponse, 
     UserListResponse, 
     UpdateUserRoleRequest,
+    DeleteUserRequest,
     PermissionResponse,
     UserStatsResponse
 )
 from src.auth.services.admin_service import (
+    delete_user,
     get_all_users,
     update_user_role,
     get_users_by_role,
@@ -75,6 +77,23 @@ async def get_clients_list(
 ):
     """取得所有一般用戶列表"""
     return await get_clients(session)
+
+@router.delete("/users/{user_id}", response_model=UserResponse)
+async def delete_user_endpoint(
+    user_id: UUID,
+    request: DeleteUserRequest,
+    current_user: User = Depends(RequireAdmin),
+    session: Session = Depends(get_session)
+):
+    """刪除用戶帳號（僅管理員）"""
+    # 防止管理員刪除自己的帳號
+    if current_user.user_id == user_id:
+        raise HTTPException(
+            status_code=400,
+            detail="不能刪除自己的帳號"
+        )
+    
+    return await delete_user(str(user_id), request.password, current_user, session)
 
 @router.put("/users/{user_id}/role", response_model=UserResponse)
 async def update_user_role_endpoint(
