@@ -7,6 +7,7 @@ from src.auth.router import router as auth_router
 from src.auth.admin_router import router as admin_router
 from src.therapist.router import router as therapist_router
 from src.course.router import router as course_router
+from src.pairing.router import router as pairing_router
 
 # 系統啟動時建立資料庫連線
 @asynccontextmanager
@@ -27,6 +28,7 @@ app.include_router(auth_router)
 app.include_router(admin_router)
 app.include_router(therapist_router)
 app.include_router(course_router)
+app.include_router(pairing_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

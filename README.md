@@ -40,7 +40,7 @@ alembic upgrade head
 ### 資料庫變更流程
 當需要修改資料庫結構時（如新增表格、修改欄位等），請遵循以下步驟：
 
-1. 在程式碼中修改 SQLModel 模型定義（models.py）
+1. 在程式碼中修改 SQLModel 模型定義（models.py），並檢查 env.py 是否有導入模型
 2. 生成新的遷移檔：
 ```bash
 alembic revision --autogenerate -m "描述變更內容"

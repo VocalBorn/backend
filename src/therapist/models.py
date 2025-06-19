@@ -33,6 +33,8 @@ class TherapistClient(SQLModel, table=True):
     assigned_date: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     is_active: bool = Field(default=True, nullable=False)
     notes: Optional[str] = Field(default=None, max_length=1000)
+    pairing_source: str = Field(default="ADMIN_ASSIGNED", max_length=50)  # "ADMIN_ASSIGNED" | "TOKEN_PAIRING"
+    pairing_token_id: Optional[uuid.UUID] = Field(foreign_key="pairing_tokens.token_id", default=None)
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     
