@@ -4,7 +4,7 @@ from pydantic import BaseModel, EmailStr, Field, field_validator
 from uuid import UUID
 from datetime import datetime
 
-from src.auth.models import UserRole
+from src.auth.models import UserRole, PairingRequestStatus
 
 def validate_password_rules(password: str) -> str:
     """
@@ -400,5 +400,120 @@ class UserStatsResponse(BaseModel):
                 "clients": 80,
                 "therapists": 15,
                 "admins": 5
+            }
+        }
+
+# 配對相關 Schema
+class PairingQRResponse(BaseModel):
+    request_id: UUID
+    token: str
+    qr_code: str  # base64編碼的QR Code圖片
+    expires_at: datetime
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "request_id": "550e8400-e29b-41d4-a716-446655440005",
+                "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "qr_code": "iVBORw0KGgoAAAANSUhEUgAAASwAAAEsCAYAAAB5fY51...",
+                "expires_at": "2025-06-19T10:30:00"
+            }
+        }
+
+class ScanPairingRequest(BaseModel):
+    token: str
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            }
+        }
+
+class PairingRequestResponse(BaseModel):
+    request_id: UUID
+    requester_id: UUID
+    target_id: Optional[UUID]
+    status: PairingRequestStatus
+    expires_at: datetime
+    created_at: datetime
+    updated_at: datetime
+    # 包含用戶基本信息
+    requester_info: Optional[Dict[str, Any]] = None
+    target_info: Optional[Dict[str, Any]] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "request_id": "550e8400-e29b-41d4-a716-446655440005",
+                "requester_id": "550e8400-e29b-41d4-a716-446655440001",
+                "target_id": "550e8400-e29b-41d4-a716-446655440002",
+                "status": "pending",
+                "expires_at": "2025-06-19T10:30:00",
+                "created_at": "2025-06-19T10:20:00",
+                "updated_at": "2025-06-19T10:20:00",
+                "requester_info": {
+                    "name": "陳醫師",
+                    "role": "therapist"
+                },
+                "target_info": {
+                    "name": "王小明",
+                    "role": "client"
+                }
+            }
+        }
+
+class PairingRequestsResponse(BaseModel):
+    sent_requests: List[PairingRequestResponse]
+    received_requests: List[PairingRequestResponse]
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "sent_requests": [],
+                "received_requests": [{
+                    "request_id": "550e8400-e29b-41d4-a716-446655440005",
+                    "requester_id": "550e8400-e29b-41d4-a716-446655440001",
+                    "target_id": "550e8400-e29b-41d4-a716-446655440002",
+                    "status": "pending",
+                    "expires_at": "2025-06-19T10:30:00",
+                    "created_at": "2025-06-19T10:20:00",
+                    "updated_at": "2025-06-19T10:20:00",
+                    "requester_info": {
+                        "name": "陳醫師",
+                        "role": "therapist"
+                    }
+                }]
+            }
+        }
+
+class RespondPairingRequest(BaseModel):
+    action: str = Field(..., pattern="^(accept|reject)$")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "action": "accept"
+            }
+        }
+
+class RelationshipsResponse(BaseModel):
+    clients: Optional[List[TherapistClientResponse]] = None
+    therapists: Optional[List[TherapistClientResponse]] = None
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "clients": [{
+                    "id": "550e8400-e29b-41d4-a716-446655440006",
+                    "therapist_id": "550e8400-e29b-41d4-a716-446655440001",
+                    "client_id": "550e8400-e29b-41d4-a716-446655440002",
+                    "created_at": "2025-06-19T10:20:00",
+                    "client_info": {
+                        "name": "王小明",
+                        "role": "client",
+                        "age": 25
+                    }
+                }]
             }
         }
