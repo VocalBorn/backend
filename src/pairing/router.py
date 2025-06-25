@@ -19,7 +19,7 @@ from src.pairing.schemas import (
     TherapistTokenList
 )
 
-router = APIRouter(prefix="/api/pairing", tags=["pairing"])
+router = APIRouter(prefix="/pairing", tags=["pairing"])
 
 @router.post(
     "/generate-token", 
