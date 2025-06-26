@@ -28,6 +28,9 @@ app = FastAPI(
             "url": "https://api-vocalborn.r0930514.work",
         }, 
         {
+            "url": "http://localhost",
+        },
+        {
             "url": "http://localhost:8000",
         },
         {

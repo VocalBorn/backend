@@ -56,7 +56,10 @@ services:
         condition: service_healthy
   # 後端應用服務
   backend:
-    image: sindy0514/vocalborn-backend:latest
+    # image: sindy0514/vocalborn-backend:latest
+    build: 
+      context: ../
+      dockerfile: Dockerfile
     container_name: vocalborn-backend
     environment:
       SMTP_PASSWORD: ${SMTP_PASSWORD}
@@ -79,7 +82,7 @@ services:
         condition: service_healthy
       minio:
         condition: service_healthy
-  # nginx 反向代理服務
+  # 新增 nginx 反向代理服務
   nginx:
     image: nginx:latest
     container_name: vocalborn-nginx
@@ -97,6 +100,5 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --interval 30 vocalborn-backend
-
 volumes:
   pgadmin_data:
