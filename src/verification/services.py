@@ -97,6 +97,13 @@ async def upload_verification_document(
     db_session.add(new_document)
     db_session.commit()
     db_session.refresh(new_document)
+
+    # 如果申請狀態不是 APPROVED，則在文件上傳後將其重置為 PENDING
+    if application.status != ApplicationStatus.APPROVED:
+        application.status = ApplicationStatus.PENDING
+        db_session.add(application)
+        db_session.commit()
+        db_session.refresh(application)
     
     return new_document
 
@@ -176,6 +183,27 @@ async def reject_application(application: TherapistApplication, admin_user_id: u
     application.status = ApplicationStatus.REJECTED
     application.reviewed_by_id = admin_user_id
     application.rejection_reason = rejection_data.reason
+    db_session.add(application)
+    db_session.commit()
+    db_session.refresh(application)
+    return application
+
+async def request_action_for_application(
+    application: TherapistApplication, 
+    admin_user_id: uuid.UUID, 
+    reason: str,
+    db_session: Session
+) -> TherapistApplication:
+    """將申請狀態設定為 ACTION_REQUIRED，並記錄原因。"""
+    if application.status not in [ApplicationStatus.PENDING, ApplicationStatus.ACTION_REQUIRED]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="只有待處理或已要求補件的申請才能再次要求補件。"
+        )
+
+    application.status = ApplicationStatus.ACTION_REQUIRED
+    application.reviewed_by_id = admin_user_id
+    application.rejection_reason = reason # 重用 rejection_reason 欄位
     db_session.add(application)
     db_session.commit()
     db_session.refresh(application)

@@ -152,3 +152,30 @@ async def reject_application(
         rejection_data=rejection_data,
         db_session=db_session
     )
+
+@router.post(
+    "/admin/therapist-applications/{application_id}/request-action",
+    response_model=TherapistApplicationRead,
+    summary="要求治療師補件",
+    description="""
+    管理員將指定治療師申請的狀態設定為「需補件」(ACTION_REQUIRED)，並提供補件原因。
+    治療師將會收到通知，並可重新上傳所需文件。
+    """
+)
+async def request_application_action(
+    application_id: uuid.UUID,
+    request_data: ApplicationRejectRequest, # 可以重用這個 Schema，或者創建一個新的
+    admin_user: User = Depends(RequireAdmin),
+    db_session: Session = Depends(get_session)
+):
+    application = await services.get_application_by_id(application_id=application_id, db_session=db_session)
+    if not application:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到指定的申請")
+    
+    # 呼叫新的服務函式來處理狀態變更
+    return await services.request_action_for_application(
+        application=application, 
+        admin_user_id=admin_user.user_id, 
+        reason=request_data.reason,
+        db_session=db_session
+    )
