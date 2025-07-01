@@ -13,6 +13,7 @@ from src.therapist.schemas import (
     TherapistProfileResponse,
     TherapistApplicationRequest
 )
+from src.verification import services as verification_services # 導入 verification 服務
 
 
 class TherapistService:
@@ -265,7 +266,7 @@ class TherapistService:
         
         return True
     
-    def apply_to_be_therapist(
+    async def apply_to_be_therapist(
         self, 
         user_id: UUID, 
         application_data: TherapistApplicationRequest
@@ -304,6 +305,11 @@ class TherapistService:
                 detail="執照號碼已存在"
             )
         
+        # 檢查或建立驗證申請
+        verification_application = await verification_services.get_latest_application_for_user(user_id, self.session)
+        if not verification_application:
+            verification_application = await verification_services.create_application(user, self.session)
+
         # 建立治療師檔案（但不改變用戶角色，需管理員審核）
         profile = TherapistProfile(
             user_id=user_id,
@@ -312,6 +318,7 @@ class TherapistService:
             bio=application_data.bio,
             years_experience=application_data.years_experience,
             education=application_data.education,
+            verification_application_id=verification_application.id, # 連結到驗證申請
             created_at=datetime.now(),
             updated_at=datetime.now()
         )

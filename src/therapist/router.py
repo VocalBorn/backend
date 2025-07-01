@@ -36,7 +36,7 @@ async def apply_to_be_therapist(
     session: Session = Depends(get_session)
 ):
     therapist_service = TherapistService(session)
-    profile = therapist_service.apply_to_be_therapist(
+    profile = await therapist_service.apply_to_be_therapist(
         current_user.user_id, 
         application_data
     )

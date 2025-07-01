@@ -17,6 +17,7 @@ class TherapistProfile(SQLModel, table=True):
     bio: Optional[str] = Field(default=None, max_length=1000)
     years_experience: Optional[int] = Field(default=None)
     education: Optional[str] = Field(default=None, max_length=500)
+    verification_application_id: Optional[uuid.UUID] = Field(default=None, foreign_key="therapistapplication.id") # 新增欄位，連結到驗證申請
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now, nullable=False)
     
