@@ -22,18 +22,7 @@ router = APIRouter(prefix="/verification", tags=["verification"])
 # User-facing Endpoints
 # =================================================================================================
 
-@router.post(
-    "/therapist-applications/",
-    response_model=TherapistApplicationRead,
-    status_code=status.HTTP_201_CREATED,
-    summary="為當前使用者建立新的治療師驗證申請"
-)
-async def create_therapist_application(
-    current_user: User = Depends(get_current_user),
-    db_session: Session = Depends(get_session)
-):
-    """使用者用來建立新的治療師驗證申請的端點。"""
-    return await services.create_application(current_user=current_user, db_session=db_session)
+
 
 @router.get(
     "/therapist-applications/me",
