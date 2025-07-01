@@ -24,11 +24,24 @@ VERIFICATION_BUCKET_NAME = "vocalborn-verifications"
 # Application Logic
 # =================================================================================================
 
-async def create_application(user_id: uuid.UUID, db_session: Session) -> TherapistApplication:
-    """Creates a new therapist verification application for a user."""
+from src.auth.models import User, UserRole
+
+async def create_application(current_user: User, db_session: Session) -> TherapistApplication:
+    """
+    Creates a new therapist verification application for a user.
+    Prevents Admins and existing Therapists from creating an application.
+    """
+    # Block both Admins and existing Therapists from creating a new application.
+    if current_user.role in (UserRole.ADMIN, UserRole.THERAPIST):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"使用者角色為 '{current_user.role.value}'，無法申請成為治療師。"
+        )
+
+    # Check if user already has a pending or approved application
     existing_application = db_session.exec(
         select(TherapistApplication).where(
-            TherapistApplication.user_id == user_id,
+            TherapistApplication.user_id == current_user.user_id,
             TherapistApplication.status.in_([ApplicationStatus.PENDING, ApplicationStatus.APPROVED])
         )
     ).first()
@@ -36,10 +49,10 @@ async def create_application(user_id: uuid.UUID, db_session: Session) -> Therapi
     if existing_application:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="User already has a pending or approved application."
+            detail="使用者已有待處理或已批准的申請。"
         )
 
-    new_application = TherapistApplication(user_id=user_id, status=ApplicationStatus.PENDING)
+    new_application = TherapistApplication(user_id=current_user.user_id, status=ApplicationStatus.PENDING)
     db_session.add(new_application)
     db_session.commit()
     db_session.refresh(new_application)
@@ -130,15 +143,29 @@ async def list_applications_by_status(status: ApplicationStatus, db_session: Ses
     return db_session.exec(statement).all()
 
 async def approve_application(application: TherapistApplication, admin_user_id: uuid.UUID, db_session: Session) -> TherapistApplication:
-    """Approves an application."""
+    """Approves an application and updates the user's role to THERAPIST."""
     if application.status != ApplicationStatus.PENDING:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Only pending applications can be approved.")
     
+    # Update application status
     application.status = ApplicationStatus.APPROVED
     application.reviewed_by_id = admin_user_id
     db_session.add(application)
+
+    # Update user's role to THERAPIST
+    user = db_session.get(User, application.user_id)
+    if user:
+        user.role = UserRole.THERAPIST
+        db_session.add(user)
+    else:
+        # This case should ideally not happen if foreign key constraints are in place
+        # but it's good to log or handle it.
+        print(f"Warning: User with ID {application.user_id} not found for application {application.id}")
+
     db_session.commit()
     db_session.refresh(application)
+    if user: # Refresh user object if it was found and updated
+        db_session.refresh(user)
     return application
 
 async def reject_application(application: TherapistApplication, admin_user_id: uuid.UUID, rejection_data: ApplicationRejectRequest, db_session: Session) -> TherapistApplication:

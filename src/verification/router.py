@@ -33,7 +33,7 @@ async def create_therapist_application(
     db_session: Session = Depends(get_session)
 ):
     """使用者用來建立新的治療師驗證申請的端點。"""
-    return await services.create_application(user_id=current_user.user_id, db_session=db_session)
+    return await services.create_application(current_user=current_user, db_session=db_session)
 
 @router.get(
     "/therapist-applications/me",
