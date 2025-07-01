@@ -70,7 +70,7 @@ async def verify_email_route(
     token: str,
     session: Annotated[Session, Depends(get_session)]
 ):
-    return verify_email_route(token, session)
+    return await verify_email(token, session)
 
 
 @router.post(
@@ -84,7 +84,7 @@ async def resend_verification_route(
     email: EmailStr,
     session: Annotated[Session, Depends(get_session)]
 ):
-    return resend_verification_route(email, session)
+    return await resend_verification(email, session)
 
 @router.post(
     '/forgot-password',
@@ -97,7 +97,7 @@ async def forgot_password_route(
     request: ForgotPasswordRequest,
     session: Annotated[Session, Depends(get_session)]
 ):
-    return forgot_password_route(request, session)
+    return await forgot_password(request, session)
 
 @router.post(
     '/reset-password',
@@ -110,7 +110,7 @@ async def reset_password_route(
     request: ResetPasswordRequest,
     session: Annotated[Session, Depends(get_session)]
 ):
-    return reset_password_route(request, session)
+    return await reset_password(request, session)
 
 @router.patch(
     '/profile',
@@ -124,7 +124,7 @@ async def update_profile_route(
     email: Annotated[str, Depends(verify_token)],
     session: Annotated[Session, Depends(get_session)]
 ):
-    return await update_profile_route(request, email, session)
+    return await account_update(email, request, session)
 
 @router.patch(
     '/password',
@@ -138,7 +138,7 @@ async def update_password_route(
     email: Annotated[str, Depends(verify_token)],
     session: Annotated[Session, Depends(get_session)]
 ):
-    return await update_password_route(request, email, session)
+    return await update_password(email, request.old_password, request.new_password, session)
 
 @router.get(
     '/profile', 
