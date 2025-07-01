@@ -23,6 +23,7 @@ from src.auth.models import Account, EmailVerification, User, UserWord
 from src.course.models import Situation, Chapter, Sentence, PracticeRecord
 from src.therapist.models import TherapistProfile, TherapistClient
 from src.pairing.models import PairingToken
+from src.verification.models import TherapistApplication, UploadedDocument
 
 
 # this is the Alembic Config object, which provides
