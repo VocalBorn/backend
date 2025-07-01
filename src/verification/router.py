@@ -97,7 +97,7 @@ async def list_pending_applications(
 @router.get(
     "/admin/therapist-applications/{application_id}",
     response_model=TherapistApplicationRead,
-    summary="ㄑㄩˇ⁞ㄉㄜ指定申請的詳細資訊"
+    summary="取得指定申請的詳細資訊"
 )
 async def get_application_details(
     application_id: uuid.UUID,
