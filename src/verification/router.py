@@ -1,4 +1,3 @@
-
 import uuid
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
@@ -74,14 +73,14 @@ async def upload_document(
 @router.get(
     "/admin/therapist-applications/",
     response_model=List[TherapistApplicationSummary],
-    summary="列出所有待處理的治療師申請"
+    summary="列出所有治療師申請"
 )
-async def list_pending_applications(
+async def list_all_applications(
     admin_user: User = Depends(RequireAdmin),
     db_session: Session = Depends(get_session)
 ):
-    """管理員用來列出所有狀態為「待處理」的申請。"""
-    return await services.list_applications_by_status(status=ApplicationStatus.PENDING, db_session=db_session)
+    """管理員用來列出所有的治療師申請，不限狀態。"""
+    return await services.list_all_applications(db_session=db_session)
 
 @router.get(
     "/admin/therapist-applications/{application_id}",

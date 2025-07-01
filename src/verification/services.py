@@ -1,4 +1,3 @@
-
 import uuid
 from typing import List
 from fastapi import UploadFile, HTTPException, status
@@ -147,6 +146,11 @@ async def get_verification_document_url(document: UploadedDocument) -> str:
 async def list_applications_by_status(status: ApplicationStatus, db_session: Session) -> List[TherapistApplication]:
     """Lists all applications with a given status."""
     statement = select(TherapistApplication).where(TherapistApplication.status == status)
+    return db_session.exec(statement).all()
+
+async def list_all_applications(db_session: Session) -> List[TherapistApplication]:
+    """列出所有的治療師申請，不限狀態。"""
+    statement = select(TherapistApplication)
     return db_session.exec(statement).all()
 
 async def approve_application(application: TherapistApplication, admin_user_id: uuid.UUID, db_session: Session) -> TherapistApplication:
