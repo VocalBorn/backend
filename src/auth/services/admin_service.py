@@ -131,7 +131,11 @@ async def demote_to_client(user_id: str, session: Session) -> UserResponse:
 
 async def delete_user(user_id: str, admin_password: str, admin_user: User, session: Session) -> UserResponse:
     """刪除用戶帳號（包含相關資料）"""
-    from src.auth.models import TherapistProfile, TherapistClient, UserWord, EmailVerification
+    from src.auth.models import UserWord, EmailVerification
+    from src.therapist.models import TherapistClient, TherapistProfile
+    from src.verification.models import TherapistApplication
+    from src.verification.models import UploadedDocument
+
     
     try:
         # 驗證管理員密碼
@@ -191,6 +195,22 @@ async def delete_user(user_id: str, admin_password: str, admin_user: User, sessi
         for verification in email_verifications:
             session.delete(verification)
         
+        # 刪除治療師申請資料
+        therapist_applications = session.exec(
+            select(TherapistApplication).where(TherapistApplication.user_id == user_id)
+        ).all()
+        for application in therapist_applications:
+            # 先刪除相關的上傳文件
+            uploaded_documents = session.exec(
+                select(UploadedDocument).where(UploadedDocument.application_id == application.id)
+            ).all()
+            for doc in uploaded_documents:
+                session.delete(doc)
+            # 再刪除申請本身
+            session.delete(application)
+
+        session.flush()
+
         # 保存用戶信息以便返回
         user_response = UserResponse(
             user_id=user.user_id,
