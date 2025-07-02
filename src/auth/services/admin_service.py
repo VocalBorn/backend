@@ -9,20 +9,25 @@ from src.auth.services.password_service import verify_password
 
 async def get_all_users(session: Session) -> List[UserResponse]:
     """取得所有用戶列表"""
-    from src.auth.models import User
+    from src.auth.models import User, Account
     try:
-        users = session.exec(select(User)).all()
+        # 使用 JOIN 操作將 User 和 Account 表聯結
+        users = session.exec(
+            select(User, Account.email).join(Account, User.account_id == Account.account_id)
+        ).all()
+
         return [
             UserResponse(
-                user_id=user.user_id,
-                account_id=user.account_id,
-                name=user.name,
-                gender=user.gender,
-                age=user.age,
-                phone=user.phone,
-                role=user.role,
-                created_at=user.created_at,
-                updated_at=user.updated_at
+                user_id=user.User.user_id,
+                account_id=user.User.account_id,
+                name=user.User.name,
+                gender=user.User.gender,
+                age=user.User.age,
+                phone=user.User.phone,
+                email=user.email,  # 從 Account 表中獲取 email
+                role=user.User.role,
+                created_at=user.User.created_at,
+                updated_at=user.User.updated_at
             )
             for user in users
         ]
@@ -82,23 +87,25 @@ async def update_user_role(
 
 async def get_users_by_role(role: UserRole, session: Session) -> List[UserResponse]:
     """根據角色取得用戶列表"""
-    from src.auth.models import User 
+    from src.auth.models import User, Account
     try:
+        # 使用 JOIN 操作將 User 和 Account 表聯結
         users = session.exec(
-            select(User).where(User.role == role)
+            select(User, Account.email).join(Account, User.account_id == Account.account_id).where(User.role == role)
         ).all()
-        
+
         return [
             UserResponse(
-                user_id=user.user_id,
-                account_id=user.account_id,
-                name=user.name,
-                gender=user.gender,
-                age=user.age,
-                phone=user.phone,
-                role=user.role,
-                created_at=user.created_at,
-                updated_at=user.updated_at
+                user_id=user.User.user_id,
+                account_id=user.User.account_id,
+                name=user.User.name,
+                gender=user.User.gender,
+                age=user.User.age,
+                phone=user.User.phone,
+                email=user.email,  # 從 Account 表中獲取 email
+                role=user.User.role,
+                created_at=user.User.created_at,
+                updated_at=user.User.updated_at
             )
             for user in users
         ]

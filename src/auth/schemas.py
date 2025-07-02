@@ -158,6 +158,7 @@ class UserResponse(BaseModel):
     gender: Optional[str]
     age: Optional[int]
     phone: Optional[str]
+    email: Optional[str]  # 新增 email 欄位
     role: UserRole
     created_at: datetime
     updated_at: datetime
@@ -171,6 +172,7 @@ class UserResponse(BaseModel):
                 "gender": "男",
                 "age": 25,
                 "phone": "0912345678",
+                "email": "example@example.com",  # 示例中新增 email
                 "role": "client",
                 "created_at": "2025-05-01T06:03:56.458985",
                 "updated_at": "2025-05-01T06:03:56.459284"
