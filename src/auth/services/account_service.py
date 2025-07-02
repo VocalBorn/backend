@@ -145,7 +145,25 @@ async def update_user(email: str, request: UpdateUserRequest, session: Session):
         session.add(user)
         session.commit()
         session.refresh(user)
-        return user
+        
+        # 獲取 email
+        account = session.exec(
+            select(Account).where(Account.account_id == user.account_id)
+        ).first()
+        email = account.email if account else None
+
+        return UserResponse(
+            user_id=user.user_id,
+            account_id=user.account_id,
+            name=user.name,
+            gender=user.gender,
+            age=user.age,
+            phone=user.phone,
+            email=email,  # 新增 email 欄位
+            role=user.role,
+            created_at=user.created_at,
+            updated_at=user.updated_at
+        )
 
     except Exception as e:
         session.rollback()
@@ -197,15 +215,18 @@ async def get_user_profile(email: str, session: Session) -> UserResponse:
             detail="使用者不存在"
         )
 
-    # 取得使用者資料
-    user = session.exec(
-        select(User).where(User.account_id == account.account_id)
+    # 使用 JOIN 操作將 User 和 Account 表聯結
+    user_data = session.exec(
+        select(User, Account.email).join(Account, User.account_id == Account.account_id).where(Account.email == email)
     ).first()
-    if not user:
+
+    if not user_data:
         raise HTTPException(
             status_code=404,
             detail="使用者資料不存在"
         )
+
+    user, account_email = user_data.User, user_data.email
 
     # 將資料轉換為響應格式
     return UserResponse(
@@ -217,5 +238,6 @@ async def get_user_profile(email: str, session: Session) -> UserResponse:
         phone=user.phone,
         role=user.role,
         created_at=user.created_at,
-        updated_at=user.updated_at
+        updated_at=user.updated_at,
+        email=account_email  # 從 Account 表中獲取 email
     )

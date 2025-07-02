@@ -63,7 +63,13 @@ async def update_user_role(
         session.add(user)
         session.commit()
         session.refresh(user)
-        
+
+        # 獲取 email
+        account = session.exec(
+            select(Account).where(Account.account_id == user.account_id)
+        ).first()
+        email = account.email if account else None
+
         return UserResponse(
             user_id=user.user_id,
             account_id=user.account_id,
@@ -71,6 +77,7 @@ async def update_user_role(
             gender=user.gender,
             age=user.age,
             phone=user.phone,
+            email=email,  # 新增 email 欄位
             role=user.role,
             created_at=user.created_at,
             updated_at=user.updated_at
