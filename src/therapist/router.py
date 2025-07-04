@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
-from src.auth.models import User, UserRole
+from src.auth.models import User
 from src.therapist.schemas import (
     TherapistProfileCreate,
     TherapistProfileUpdate,
@@ -14,7 +14,7 @@ from src.therapist.schemas import (
     TherapistClientResponse,
     UserWithProfileResponse
 )
-from src.therapist.services.therapist_service import TherapistService
+from src.therapist.services import therapist_service
 from src.auth.services.permission_service import get_current_user, require_permission, Permission
 from src.shared.database.database import get_session
 
@@ -35,10 +35,10 @@ async def apply_to_be_therapist(
     current_user: User = Depends(get_current_user),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
     profile = await therapist_service.apply_to_be_therapist(
         current_user.user_id, 
-        application_data
+        application_data,
+        session
     )
     return profile
 
@@ -55,15 +55,12 @@ async def get_my_therapist_profile(
     current_user: User = Depends(require_permission(Permission.VIEW_THERAPIST_PROFILE)),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
-    profile = therapist_service.get_therapist_profile(current_user.user_id)
-    
+    profile = therapist_service.get_therapist_profile(current_user.user_id, session)
     if not profile:
         raise HTTPException(
             status_code=404,
             detail="治療師檔案不存在"
         )
-    
     return profile
 
 @router.post(
@@ -80,10 +77,10 @@ async def create_therapist_profile(
     current_user: User = Depends(require_permission(Permission.MANAGE_THERAPIST_PROFILE)),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
     profile = therapist_service.create_therapist_profile(
         current_user.user_id, 
-        profile_data
+        profile_data,
+        session
     )
     return profile
 
@@ -101,10 +98,10 @@ async def update_therapist_profile(
     current_user: User = Depends(require_permission(Permission.MANAGE_THERAPIST_PROFILE)),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
     profile = therapist_service.update_therapist_profile(
         current_user.user_id, 
-        profile_data
+        profile_data,
+        session
     )
     return profile
 
@@ -120,8 +117,7 @@ async def delete_therapist_profile(
     current_user: User = Depends(require_permission(Permission.MANAGE_THERAPIST_PROFILE)),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
-    success = therapist_service.delete_therapist_profile(current_user.user_id)
+    success = therapist_service.delete_therapist_profile(current_user.user_id, session)
     return {"message": "治療師檔案已刪除", "success": success}
 
 @router.get(
@@ -138,15 +134,12 @@ async def get_therapist_profile_by_id(
     current_user: User = Depends(require_permission(Permission.VIEW_THERAPIST_PROFILE)),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
-    profile = therapist_service.get_therapist_profile(user_id)
-    
+    profile = therapist_service.get_therapist_profile(user_id, session)
     if not profile:
         raise HTTPException(
             status_code=404,
             detail="治療師檔案不存在"
         )
-    
     return profile
 
 @router.post(
@@ -164,10 +157,10 @@ async def assign_client_to_therapist(
     current_user: User = Depends(require_permission(Permission.ASSIGN_CLIENTS)),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
     assignment = therapist_service.assign_client_to_therapist(
         therapist_id,
-        assignment_data.client_id
+        assignment_data.client_id,
+        session=session
     )
     return assignment
 
@@ -183,8 +176,7 @@ async def get_my_clients(
     current_user: User = Depends(require_permission(Permission.VIEW_ASSIGNED_CLIENTS)),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
-    clients = therapist_service.get_therapist_clients(current_user.user_id)
+    clients = therapist_service.get_therapist_clients(current_user.user_id, session)
     return clients
 
 @router.delete(
@@ -199,10 +191,10 @@ async def unassign_client(
     current_user: User = Depends(require_permission(Permission.ASSIGN_CLIENTS)),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
     success = therapist_service.unassign_client_from_therapist(
         current_user.user_id,
-        client_id
+        client_id,
+        session=session
     )
     return {"message": "客戶指派已取消", "success": success}
 
@@ -218,13 +210,11 @@ async def get_all_therapists(
     current_user: User = Depends(require_permission(Permission.VIEW_ALL_USERS)),
     session: Session = Depends(get_session)
 ):
-    therapist_service = TherapistService(session)
-    therapists = therapist_service.get_all_therapists()
-    
+    therapists = therapist_service.get_all_therapists(session)
     # 載入治療師檔案
     result = []
     for therapist in therapists:
-        profile = therapist_service.get_therapist_profile(therapist.user_id)
+        profile = therapist_service.get_therapist_profile(therapist.user_id, session)
         therapist_data = {
             "user_id": therapist.user_id,
             "account_id": therapist.account_id,
@@ -238,5 +228,4 @@ async def get_all_therapists(
             "therapist_profile": profile
         }
         result.append(therapist_data)
-    
     return result
