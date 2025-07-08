@@ -9,7 +9,14 @@ from src.auth.services.jwt_service import verify_token
 from src.auth.models import User, UserRole
 from src.auth.services.permission_service import get_current_user
 from src.shared.database.database import get_session
-from src.pairing.services.pairing_service import PairingService
+from src.pairing.services.pairing_service import (
+    generate_pairing_token,
+    get_therapist_tokens,
+    revoke_token,
+    validate_token,
+    use_token,
+    get_active_tokens_count
+)
 from src.pairing.schemas import (
     PairingTokenCreate,
     PairingTokenWithQR,
@@ -39,7 +46,7 @@ router = APIRouter(prefix="/pairing", tags=["pairing"])
                         "max_uses": 3,
                         "current_uses": 0,
                         "is_used": False,
-                        "qr_data": "https://yourdomain.com/pair/VLZHRW45"
+                        "qr_data": "https://vocalborn.r0930514.work/pair/VLZHRW45"
                     }
                 }
             }
@@ -52,7 +59,7 @@ router = APIRouter(prefix="/pairing", tags=["pairing"])
         }
     }
 )
-async def generate_pairing_token(
+async def generate_pairing_token_router(
     token_data: PairingTokenCreate,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
@@ -73,8 +80,8 @@ async def generate_pairing_token(
             detail="只有治療師可以生成配對token"
         )
     
-    pairing_service = PairingService(session)
-    return pairing_service.generate_pairing_token(
+    return generate_pairing_token(
+        session,
         therapist_id=current_user.user_id,
         token_data=token_data
     )
@@ -114,7 +121,7 @@ async def generate_pairing_token(
         }
     }
 )
-async def get_my_tokens(
+async def get_my_tokens_router(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
 ):
@@ -136,8 +143,7 @@ async def get_my_tokens(
             detail="只有治療師可以查看token列表"
         )
     
-    pairing_service = PairingService(session)
-    return pairing_service.get_therapist_tokens(current_user.user_id)
+    return get_therapist_tokens(session, current_user.user_id)
 
 @router.delete(
     "/tokens/{token_id}",
@@ -166,7 +172,7 @@ async def get_my_tokens(
         }
     }
 )
-async def revoke_token(
+async def revoke_token_router(
     token_id: UUID,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
@@ -188,9 +194,7 @@ async def revoke_token(
             detail="只有治療師可以撤銷token"
         )
     
-    pairing_service = PairingService(session)
-    success = pairing_service.revoke_token(token_id, current_user.user_id)
-    
+    success = revoke_token(session, token_id, current_user.user_id)
     return {"success": success, "message": "Token已撤銷"}
 
 @router.get(
@@ -230,7 +234,7 @@ async def revoke_token(
         }
     }
 )
-async def validate_token(
+async def validate_token_router(
     token_code: str,
     session: Annotated[Session, Depends(get_session)]
 ):
@@ -248,8 +252,7 @@ async def validate_token(
     此端點為公開端點，不需要認證即可使用。
     """
     
-    pairing_service = PairingService(session)
-    return pairing_service.validate_token(token_code)
+    return validate_token(session, token_code)
 
 @router.post(
     "/join/{token_code}", 
@@ -282,7 +285,7 @@ async def validate_token(
         }
     }
 )
-async def join_with_token(
+async def join_with_token_router(
     token_code: str,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
@@ -304,8 +307,7 @@ async def join_with_token(
             detail="只有客戶可以使用配對token"
         )
     
-    pairing_service = PairingService(session)
-    return pairing_service.use_token(token_code, current_user.user_id)
+    return use_token(session, token_code, current_user.user_id)
 
 @router.get(
     "/my-therapists",
@@ -338,7 +340,7 @@ async def join_with_token(
         }
     }
 )
-async def get_my_therapists(
+async def get_my_therapists_router(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
 ):
@@ -403,7 +405,7 @@ async def get_my_therapists(
         }
     }
 )
-async def get_pairing_stats(
+async def get_pairing_stats_router(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
 ):
@@ -424,16 +426,14 @@ async def get_pairing_stats(
             detail="只有治療師可以查看配對統計"
         )
     
-    pairing_service = PairingService(session)
-    
     # 取得活躍token數量
-    active_tokens = pairing_service.get_active_tokens_count(current_user.user_id)
-    
+    active_tokens = get_active_tokens_count(session, current_user.user_id)
+
     # 取得客戶數量
     from src.therapist.services.therapist_service import TherapistService
     therapist_service = TherapistService(session)
     clients = therapist_service.get_therapist_clients(current_user.user_id)
-    
+
     return {
         "active_tokens": active_tokens,
         "total_clients": len(clients),
