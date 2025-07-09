@@ -365,7 +365,8 @@ class EmailService:
             token: 驗證 token
             base_url: 網站基礎 URL
         """
-        verification_url = f"{base_url}/user/verify-email/{token}"
+        # verification_url = f"{base_url}/user/verify-email/{token}"
+        verification_url = f"{base_url}/verify_email.html?token={token}"
         html_content = EmailTemplates.verification_email(verification_url)
         
         await self.send_email(
