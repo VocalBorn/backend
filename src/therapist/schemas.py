@@ -1,9 +1,43 @@
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, EmailStr, field_validator
 from uuid import UUID
 from datetime import datetime
 
 from src.auth.models import UserRole
+from src.auth.schemas import Gender, validate_password_rules
+
+# New request schema for the simplified therapist registration
+class TherapistRegisterRequest(BaseModel):
+    # User fields
+    email: EmailStr
+    password: str = Field(..., min_length=8)
+    name: str = Field(..., min_length=2, max_length=100)
+    gender: Gender
+    age: int = Field(..., ge=0, le=150)
+
+    # Therapist Profile fields
+    license_number: str = Field(..., min_length=5, max_length=50)
+    specialization: Optional[str] = Field(None, max_length=200)
+    bio: Optional[str] = Field(None, max_length=1000)
+    years_experience: Optional[int] = Field(None, ge=0, le=50)
+    education: Optional[str] = Field(None, max_length=500)
+
+    @field_validator('password', mode='before')
+    def validate_password(cls, password: str):
+        return validate_password_rules(password)
+
+# New response schema for the simplified therapist registration
+class TherapistRegistrationResponse(BaseModel):
+    user_id: UUID
+    verification_application_id: UUID
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "user_id": "550e8400-e29b-41d4-a716-446655440001",
+                "verification_application_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
+            }
+        }
 
 class TherapistClientCreate(BaseModel):
     client_id: UUID
@@ -20,57 +54,14 @@ class TherapistClientResponse(BaseModel):
     therapist_id: UUID
     client_id: UUID
     created_at: datetime
-    
-    # 包含用戶基本信息，便於前端直接使用
     client_info: Optional[Dict[str, Any]] = None
     therapist_info: Optional[Dict[str, Any]] = None
-
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "id": "550e8400-e29b-41d4-a716-446655440003",
-                "therapist_id": "550e8400-e29b-41d4-a716-446655440001",
-                "client_id": "550e8400-e29b-41d4-a716-446655440002",
-                "created_at": "2025-05-01T06:03:56.458985",
-                "client_info": {
-                    "name": "林小華",
-                    "gender": "女",
-                    "age": 30
-                },
-                "therapist_info": {
-                    "name": "陳醫師",
-                    "gender": "男"
-                }
-            }
-        }
 
 class TherapistClientListResponse(BaseModel):
     total: int
     therapist_clients: List[TherapistClientResponse]
 
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "total": 1,
-                "therapist_clients": [{
-                    "id": "550e8400-e29b-41d4-a716-446655440003",
-                    "therapist_id": "550e8400-e29b-41d4-a716-446655440001",
-                    "client_id": "550e8400-e29b-41d4-a716-446655440002",
-                    "created_at": "2025-05-01T06:03:56.458985",
-                    "client_info": {
-                        "name": "林小華",
-                        "gender": "女",
-                        "age": 30
-                    },
-                    "therapist_info": {
-                        "name": "陳醫師",
-                        "gender": "男"
-                    }
-                }]
-            }
-        }
-
-# 治療師檔案相關 Schema
+# This schema is for creating a profile for an *existing* user.
 class TherapistProfileCreate(BaseModel):
     license_number: str = Field(..., min_length=5, max_length=50)
     specialization: Optional[str] = Field(None, max_length=200)
@@ -108,7 +99,7 @@ class TherapistProfileUpdate(BaseModel):
 class TherapistProfileResponse(BaseModel):
     profile_id: UUID
     user_id: UUID
-    license_number: str
+    license_number: Optional[str]
     specialization: Optional[str]
     bio: Optional[str]
     years_experience: Optional[int]
@@ -170,21 +161,10 @@ class UserWithProfileResponse(BaseModel):
             }
         }
 
-# 治療師申請成為治療師的 Schema
-class TherapistApplicationRequest(BaseModel):
+# Renamed from TherapistApplicationRequest to be more generic for profile data
+class TherapistProfileData(BaseModel):
     license_number: str = Field(..., min_length=5, max_length=50)
     specialization: str = Field(..., min_length=2, max_length=200)
     bio: str = Field(..., min_length=10, max_length=1000)
     years_experience: int = Field(..., ge=0, le=50)
     education: str = Field(..., min_length=5, max_length=500)
-    
-    class Config:
-        json_schema_extra = {
-            "example": {
-                "license_number": "TH123456",
-                "specialization": "語言治療",
-                "bio": "專精於兒童語言發展治療，具有豐富的臨床經驗。",
-                "years_experience": 5,
-                "education": "國立陽明交通大學語言治療學系碩士"
-            }
-        }

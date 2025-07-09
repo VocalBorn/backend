@@ -1,6 +1,6 @@
 import uuid
 from typing import List
-from fastapi import UploadFile, HTTPException, status
+from fastapi import UploadFile, HTTPException, requests, status
 from sqlmodel import Session, select
 from datetime import timedelta
 
@@ -84,8 +84,12 @@ async def upload_verification_document(
             length=file.size,
             content_type=file.content_type
         )
+    except requests.exceptions.Timeout:
+        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="文件上傳超時，請稍後再試。")
+    except requests.exceptions.ConnectionError:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="文件上傳服務暫時不可用，請檢查網路連線或稍後再試。")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to upload file: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"文件上傳失敗: {e}")
 
     # 4. Create the database record
     new_document = UploadedDocument(

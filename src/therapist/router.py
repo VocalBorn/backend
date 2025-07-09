@@ -1,46 +1,40 @@
 from typing import List
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 
 from src.auth.models import User
 from src.therapist.schemas import (
-    TherapistProfileCreate,
     TherapistProfileUpdate,
     TherapistProfileResponse,
-    TherapistApplicationRequest,
     TherapistClientCreate,
     TherapistClientResponse,
-    UserWithProfileResponse
+    UserWithProfileResponse,
+    TherapistRegistrationResponse,
+    TherapistRegisterRequest
 )
 from src.therapist.services import therapist_service
-from src.auth.services.permission_service import get_current_user, require_permission, Permission
+from src.auth.services.permission_service import require_permission, Permission
 from src.shared.database.database import get_session
 
 router = APIRouter(prefix="/therapist", tags=["therapist"])
 
-@router.post(
-    "/apply", 
-    response_model=TherapistProfileResponse,
-    summary="申請成為治療師並提交個人檔案",
-    description="""
-    使用者提交治療師申請，包含個人簡介、學歷、資歷、專注領域等文字資訊。
-    此端點會建立或更新治療師的個人檔案，並在內部啟動或連結一個驗證申請流程。
-    文件上傳（如證書、身分證）需透過 `/verification/therapist-applications/{application_id}/documents/` 端點進行。
-    """
-)
-async def apply_to_be_therapist(
-    application_data: TherapistApplicationRequest,
-    current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session)
+
+@router.post("/register", 
+             response_model=TherapistRegistrationResponse, 
+             status_code=status.HTTP_201_CREATED, 
+             summary="註冊新治療師帳號",
+             description="""
+             提供基本資料和專業檔案來一次性註冊新的治療師帳號。
+             此操作會建立使用者、治療師檔案和一個待處理的驗證申請。
+             """)
+async def register_therapist(
+    request: TherapistRegisterRequest,
+    session: Session = Depends(get_session),
 ):
-    profile = await therapist_service.apply_to_be_therapist(
-        current_user.user_id, 
-        application_data,
-        session
-    )
-    return profile
+    return await therapist_service.register_new_therapist(session=session, request=request)
+
 
 @router.get(
     "/profile", 
@@ -55,33 +49,12 @@ async def get_my_therapist_profile(
     current_user: User = Depends(require_permission(Permission.VIEW_THERAPIST_PROFILE)),
     session: Session = Depends(get_session)
 ):
-    profile = therapist_service.get_therapist_profile(current_user.user_id, session)
+    profile = therapist_service.get_therapist_profile(session, current_user.user_id)
     if not profile:
         raise HTTPException(
             status_code=404,
             detail="治療師檔案不存在"
         )
-    return profile
-
-@router.post(
-    "/profile", 
-    response_model=TherapistProfileResponse,
-    summary="建立治療師檔案 (僅限治療師角色)",
-    description="""
-    為當前登入的使用者建立治療師檔案。此操作僅限於已具備治療師角色的使用者。
-    如果使用者尚未有治療師檔案，則會建立一個新的檔案。
-    """
-)
-async def create_therapist_profile(
-    profile_data: TherapistProfileCreate,
-    current_user: User = Depends(require_permission(Permission.MANAGE_THERAPIST_PROFILE)),
-    session: Session = Depends(get_session)
-):
-    profile = therapist_service.create_therapist_profile(
-        current_user.user_id, 
-        profile_data,
-        session
-    )
     return profile
 
 @router.put(
@@ -99,9 +72,9 @@ async def update_therapist_profile(
     session: Session = Depends(get_session)
 ):
     profile = therapist_service.update_therapist_profile(
+        session, 
         current_user.user_id, 
-        profile_data,
-        session
+        profile_data
     )
     return profile
 
@@ -117,7 +90,7 @@ async def delete_therapist_profile(
     current_user: User = Depends(require_permission(Permission.MANAGE_THERAPIST_PROFILE)),
     session: Session = Depends(get_session)
 ):
-    success = therapist_service.delete_therapist_profile(current_user.user_id, session)
+    success = therapist_service.delete_therapist_profile(session, current_user.user_id)
     return {"message": "治療師檔案已刪除", "success": success}
 
 @router.get(
@@ -134,7 +107,7 @@ async def get_therapist_profile_by_id(
     current_user: User = Depends(require_permission(Permission.VIEW_THERAPIST_PROFILE)),
     session: Session = Depends(get_session)
 ):
-    profile = therapist_service.get_therapist_profile(user_id, session)
+    profile = therapist_service.get_therapist_profile(session, user_id)
     if not profile:
         raise HTTPException(
             status_code=404,
@@ -158,9 +131,9 @@ async def assign_client_to_therapist(
     session: Session = Depends(get_session)
 ):
     assignment = therapist_service.assign_client_to_therapist(
+        session,
         therapist_id,
-        assignment_data.client_id,
-        session=session
+        assignment_data.client_id
     )
     return assignment
 
@@ -176,7 +149,7 @@ async def get_my_clients(
     current_user: User = Depends(require_permission(Permission.VIEW_ASSIGNED_CLIENTS)),
     session: Session = Depends(get_session)
 ):
-    clients = therapist_service.get_therapist_clients(current_user.user_id, session)
+    clients = therapist_service.get_therapist_clients(session, current_user.user_id)
     return clients
 
 @router.delete(
@@ -192,9 +165,9 @@ async def unassign_client(
     session: Session = Depends(get_session)
 ):
     success = therapist_service.unassign_client_from_therapist(
+        session,
         current_user.user_id,
-        client_id,
-        session=session
+        client_id
     )
     return {"message": "客戶指派已取消", "success": success}
 
@@ -211,10 +184,9 @@ async def get_all_therapists(
     session: Session = Depends(get_session)
 ):
     therapists = therapist_service.get_all_therapists(session)
-    # 載入治療師檔案
     result = []
     for therapist in therapists:
-        profile = therapist_service.get_therapist_profile(therapist.user_id, session)
+        profile = therapist_service.get_therapist_profile(session, therapist.user_id)
         therapist_data = {
             "user_id": therapist.user_id,
             "account_id": therapist.account_id,

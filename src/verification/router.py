@@ -54,15 +54,12 @@ async def upload_document(
     application_id: uuid.UUID,
     document_type: DocumentType = Form(...),
     file: UploadFile = File(...),
-    current_user: User = Depends(get_current_user),
     db_session: Session = Depends(get_session)
 ):
-    """為指定的申請上傳文件（例如身分證、證書等）。"""
+    """為指定的申請上傳文件（例如身分證、證書等）。此 API 無需登入。"""
     application = await services.get_application_by_id(application_id, db_session)
     if not application:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="找不到指定的申請")
-    if application.user_id != current_user.user_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="使用者無權操作此申請")
     
     return await services.upload_verification_document(application, document_type, file, db_session)
 

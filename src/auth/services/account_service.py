@@ -15,57 +15,75 @@ from src.auth.services.jwt_service import create_access_token, ACCESS_TOKEN_EXPI
 from src.auth.services.password_service import get_password_hash, verify_password
 from src.auth.services.email_verification_service import generate_verification_token, send_verification_email
 
-async def register(request: RegisterRequest, session: Session) -> Account:
-    existing_user = session.exec(select(Account).where(Account.email == request.email)).first()    
-    if existing_user:
+from src.auth.models import Account, User, EmailVerification, UserRole
+
+def _create_account_and_user(session: Session, email: EmailStr, password: str, name: str, gender: str, age: int, role: UserRole = UserRole.CLIENT, is_verified: bool = False) -> User:
+    """
+    Internal function to create an account and a user.
+    This function does not commit the session.
+    """
+    existing_account = session.exec(select(Account).where(Account.email == email)).first()
+    if existing_account:
         raise HTTPException(
             status_code=400,
             detail="Email already registered"
         )
-    try:
-        # 產生驗證碼
-        verification_token = generate_verification_token()
 
-        # 建立帳號
-        new_account = Account(
+    new_account = Account(
+        email=email,
+        password=get_password_hash(password),
+        is_verified=is_verified 
+    )
+    session.add(new_account)
+    session.flush()
+
+    new_user = User(
+        account_id=new_account.account_id,
+        name=name,
+        gender=gender,
+        age=age,
+        role=role
+    )
+    session.add(new_user)
+    session.flush()
+    
+    return new_user
+
+async def register(request: RegisterRequest, session: Session) -> User:
+    try:
+        # Create account and user
+        new_user = _create_account_and_user(
+            session=session,
             email=request.email,
-            password=get_password_hash(request.password),
-            is_verified=False
-        )
-        session.add(new_account)
-        session.flush()
-        
-        # 建立使用者資料
-        new_user = User(
-            account_id=new_account.account_id,
+            password=request.password,
             name=request.name,
-            gender=request.gender,
+            gender=request.gender.value,
             age=request.age,
+            role=UserRole.CLIENT
         )
-        session.add(new_user)
-        
-        # 建立驗證記錄
+
+        # Generate and send verification email
+        verification_token = generate_verification_token()
         verification = EmailVerification(
-            account_id=new_account.account_id,
+            account_id=new_user.account_id,
             token=verification_token,
             expiry=datetime.now() + timedelta(hours=24)
         )
         session.add(verification)
-        session.flush()
         
-        # 發送驗證郵件（已經內建重試和超時處理）
         try:
             await send_verification_email(request.email, verification_token)
         except Exception as e:
-            # 即使郵件發送失敗，我們仍然創建用戶
-            # 用戶可以稍後通過 resend_verification 功能重新發送驗證郵件
-            pass
-        
-        # 提交事務並回傳用戶資料
+            # Log the error but don't block registration
+            print(f"Failed to send verification email: {e}")
+
         session.commit()
         session.refresh(new_user)
         return new_user
 
+    except HTTPException as http_exc:
+        session.rollback()
+        raise http_exc
     except Exception as e:
         session.rollback()
         raise HTTPException(
