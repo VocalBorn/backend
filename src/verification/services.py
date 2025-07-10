@@ -1,11 +1,9 @@
-import os
 import uuid
 from typing import List
-from fastapi import UploadFile, HTTPException, requests, status
+from fastapi import UploadFile, HTTPException, status
 from sqlmodel import Session, select
-from datetime import timedelta
 
-from src.shared.services.storage_service import minio_client
+from src.storage import get_verification_storage, StorageServiceError
 from src.verification.models import (
     TherapistApplication, 
     UploadedDocument,
@@ -13,12 +11,6 @@ from src.verification.models import (
     DocumentType
 )
 from src.verification.schemas import ApplicationRejectRequest
-
-# =================================================================================================
-# Constants
-# =================================================================================================
-
-VERIFICATION_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME", "verification-documents")
 
 # =================================================================================================
 # Application Logic
@@ -71,28 +63,24 @@ async def upload_verification_document(
     document_id = uuid.uuid4()
     object_name = f"applications/{application.id}/{document_type.value}/{document_id}.{file_extension}"
 
-    # 2. Ensure the bucket exists
-    bucket_exists = minio_client.bucket_exists(VERIFICATION_BUCKET_NAME)
-    if not bucket_exists:
-        minio_client.make_bucket(VERIFICATION_BUCKET_NAME)
-
-    # 3. Upload the file to MinIO
+    # 2. Upload the file using the dedicated service
     try:
-        minio_client.put_object(
-            bucket_name=VERIFICATION_BUCKET_NAME,
-            object_name=object_name,
-            data=file.file,
-            length=file.size,
-            content_type=file.content_type
+        storage_service = get_verification_storage()
+        storage_service.upload_file(file=file, object_name=object_name)
+    except StorageServiceError as e:
+        # 將儲存服務錯誤轉換為 HTTP 異常
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"檔案上傳失敗: {str(e)}"
         )
-    except requests.exceptions.Timeout:
-        raise HTTPException(status_code=status.HTTP_504_GATEWAY_TIMEOUT, detail="文件上傳超時，請稍後再試。")
-    except requests.exceptions.ConnectionError:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="文件上傳服務暫時不可用，請檢查網路連線或稍後再試。")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"文件上傳失敗: {e}")
+        # 捕獲其他未預期的錯誤
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"檔案上傳時發生未預期錯誤: {str(e)}"
+        )
 
-    # 4. Create the database record
+    # 3. Create the database record
     new_document = UploadedDocument(
         application_id=application.id,
         document_type=document_type,
@@ -131,17 +119,21 @@ async def get_document_by_id(document_id: uuid.UUID, db_session: Session) -> Upl
     return db_session.get(UploadedDocument, document_id)
 
 async def get_verification_document_url(document: UploadedDocument) -> str:
-    """Generates a short-lived, pre-signed URL for viewing a verification document."""
+    """為查看驗證文件生成短期有效的預簽署 URL"""
     try:
-        url = minio_client.get_presigned_url(
-            "GET",
-            bucket_name=VERIFICATION_BUCKET_NAME,
-            object_name=document.file_object_name,
-            expires=timedelta(minutes=15)
-        )
+        storage_service = get_verification_storage()
+        url = storage_service.get_presigned_url(document.file_object_name)
         return url
+    except StorageServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"生成查看 URL 失敗: {str(e)}"
+        )
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Failed to generate view URL: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"生成查看 URL 時發生未預期錯誤: {str(e)}"
+        )
 
 
 # =================================================================================================
