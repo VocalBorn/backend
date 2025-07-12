@@ -27,7 +27,7 @@ async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(secur
         token = credentials.credentials
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
-        if email is None:
+        if not isinstance(email, str) or not email.strip():
             raise HTTPException(
                 status_code=401,
                 detail="無效的認證憑證"
