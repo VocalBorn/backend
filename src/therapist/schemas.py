@@ -1,5 +1,5 @@
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field, EmailStr, field_validator
+from pydantic import BaseModel, Field, EmailStr, field_validator, ConfigDict
 from uuid import UUID
 from datetime import datetime
 
@@ -31,23 +31,25 @@ class TherapistRegistrationResponse(BaseModel):
     user_id: UUID
     verification_application_id: UUID
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "user_id": "550e8400-e29b-41d4-a716-446655440001",
                 "verification_application_id": "a1b2c3d4-e5f6-7890-1234-567890abcdef"
             }
         }
+    )
 
 class TherapistClientCreate(BaseModel):
     client_id: UUID
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "client_id": "550e8400-e29b-41d4-a716-446655440002"
             }
         }
+    )
 
 class TherapistClientResponse(BaseModel):
     id: UUID
@@ -69,8 +71,8 @@ class TherapistProfileCreate(BaseModel):
     years_experience: Optional[int] = Field(None, ge=0, le=50)
     education: Optional[str] = Field(None, max_length=500)
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "license_number": "TH123456",
                 "specialization": "語言治療",
@@ -79,6 +81,7 @@ class TherapistProfileCreate(BaseModel):
                 "education": "國立陽明交通大學語言治療學系碩士"
             }
         }
+    )
 
 class TherapistProfileUpdate(BaseModel):
     license_number: Optional[str] = Field(None, min_length=5, max_length=50)
@@ -87,14 +90,15 @@ class TherapistProfileUpdate(BaseModel):
     years_experience: Optional[int] = Field(None, ge=0, le=50)
     education: Optional[str] = Field(None, max_length=500)
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "specialization": "兒童語言治療",
                 "bio": "專精於兒童語言發展治療，具有豐富的臨床經驗。",
                 "years_experience": 6
             }
         }
+    )
 
 class TherapistProfileResponse(BaseModel):
     profile_id: UUID
@@ -107,8 +111,8 @@ class TherapistProfileResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "profile_id": "550e8400-e29b-41d4-a716-446655440005",
                 "user_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -121,6 +125,7 @@ class TherapistProfileResponse(BaseModel):
                 "updated_at": "2025-05-01T06:03:56.459284"
             }
         }
+    )
 
 # 增強的用戶回應 Schema，包含治療師檔案
 class UserWithProfileResponse(BaseModel):
@@ -135,8 +140,8 @@ class UserWithProfileResponse(BaseModel):
     updated_at: datetime
     therapist_profile: Optional[TherapistProfileResponse] = None
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "user_id": "550e8400-e29b-41d4-a716-446655440001",
                 "account_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -160,6 +165,7 @@ class UserWithProfileResponse(BaseModel):
                 }
             }
         }
+    )
 
 # Renamed from TherapistApplicationRequest to be more generic for profile data
 class TherapistProfileData(BaseModel):

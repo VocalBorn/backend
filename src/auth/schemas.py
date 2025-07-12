@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, ConfigDict
 from uuid import UUID
 from datetime import datetime
 
@@ -77,25 +77,27 @@ class AccountCreate(BaseModel):
     email: EmailStr
     password: str
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "email": "example@gmail.com",
                 "password": "your-password"
             }
         }
+    )
 
 class AccountLogin(BaseModel):
     email: EmailStr
     password: str
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "email": "example@gmail.com",
                 "password": "your-password"
             }
         }
+    )
 
 class AccountResponse(BaseModel):
     account_id: UUID
@@ -104,8 +106,8 @@ class AccountResponse(BaseModel):
     updated_at: datetime
     is_verified: bool
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "account_id": "550e8400-e29b-41d4-a716-446655440000",
                 "email": "example@gmail.com",
@@ -114,6 +116,7 @@ class AccountResponse(BaseModel):
                 "is_verified": True
             }
         }
+    )
 
 class UserCreate(BaseModel):
     name: str
@@ -122,8 +125,8 @@ class UserCreate(BaseModel):
     phone: Optional[str] = None
     role: UserRole = UserRole.CLIENT
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "王小明",
                 "gender": "男",
@@ -132,6 +135,7 @@ class UserCreate(BaseModel):
                 "role": "client"
             }
         }
+    )
 
 class UserUpdate(BaseModel):
     name: Optional[str] = None
@@ -140,8 +144,8 @@ class UserUpdate(BaseModel):
     phone: Optional[str] = None
     role: Optional[UserRole] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "王大明",
                 "gender": "男",
@@ -150,6 +154,7 @@ class UserUpdate(BaseModel):
                 "role": "client"
             }
         }
+    )
 
 class UserResponse(BaseModel):
     user_id: UUID
@@ -163,8 +168,8 @@ class UserResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "user_id": "550e8400-e29b-41d4-a716-446655440001",
                 "account_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -178,13 +183,14 @@ class UserResponse(BaseModel):
                 "updated_at": "2025-05-01T06:03:56.459284"
             }
         }
+    )
 
 class UserListResponse(BaseModel):
     total: int
     users: List[UserResponse]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total": 1,
                 "users": [{
@@ -200,31 +206,34 @@ class UserListResponse(BaseModel):
                 }]
             }
         }
+    )
 
 
 class UserWordCreate(BaseModel):
     content: str
     location: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "content": "餐廳",
                 "location": "台北市信義區"
             }
         }
+    )
 
 class UserWordUpdate(BaseModel):
     content: Optional[str] = None
     location: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "content": "高級餐廳",
                 "location": "台北市信義區101大樓"
             }
         }
+    )
 
 class UserWordResponse(BaseModel):
     word_id: UUID
@@ -234,8 +243,8 @@ class UserWordResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "word_id": "550e8400-e29b-41d4-a716-446655440004",
                 "user_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -245,13 +254,14 @@ class UserWordResponse(BaseModel):
                 "updated_at": "2025-05-01T06:03:56.459284"
             }
         }
+    )
 
 class UserWordListResponse(BaseModel):
     total: int
     user_words: List[UserWordResponse]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total": 1,
                 "user_words": [{
@@ -264,66 +274,72 @@ class UserWordListResponse(BaseModel):
                 }]
             }
         }
+    )
 
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 "token_type": "bearer"
             }
         }
+    )
 
 class EmailVerificationCreate(BaseModel):
     email: EmailStr
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "email": "example@gmail.com"
             }
         }
+    )
 
 class EmailVerificationConfirm(BaseModel):
     token: str
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "token": "123456"
             }
         }
+    )
 
 # 管理員相關 Schema
 class UpdateUserRoleRequest(BaseModel):
     role: UserRole
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "role": "therapist"
             }
         }
+    )
 
 class DeleteUserRequest(BaseModel):
     password: str
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "password": "admin_password"
             }
         }
+    )
 
 class PermissionResponse(BaseModel):
     role: UserRole
     permissions: List[str]
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "role": "client",
                 "permissions": [
@@ -334,6 +350,7 @@ class PermissionResponse(BaseModel):
                 ]
             }
         }
+    )
 
 class UserStatsResponse(BaseModel):
     total_users: int
@@ -341,8 +358,8 @@ class UserStatsResponse(BaseModel):
     therapists: int
     admins: int
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total_users": 100,
                 "clients": 80,
@@ -350,3 +367,4 @@ class UserStatsResponse(BaseModel):
                 "admins": 5
             }
         }
+    )

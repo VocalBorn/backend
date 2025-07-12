@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
+from pydantic import ConfigDict
 from uuid import UUID
 
 from src.course.models import SpeakerRole
@@ -11,28 +12,30 @@ class SituationCreate(BaseModel):
     description: Optional[str] = None
     location: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "situation_name": "餐廳用餐",
                 "description": "在餐廳點餐、用餐和結帳的對話情境",
                 "location": "餐廳"
             }
         }
+    )
 
 class SituationUpdate(BaseModel):
     situation_name: Optional[str] = None
     description: Optional[str] = None
     location: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "situation_name": "高級餐廳用餐",
                 "description": "在高級餐廳點餐、用餐和結帳的對話情境",
                 "location": "高級餐廳"
             }
         }
+    )
 
 class SituationResponse(BaseModel):
     situation_id: UUID
@@ -42,8 +45,8 @@ class SituationResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "situation_id": "550e8400-e29b-41d4-a716-446655440000",
                 "situation_name": "餐廳用餐",
@@ -53,6 +56,7 @@ class SituationResponse(BaseModel):
                 "updated_at": "2025-05-01T06:03:56.459284"
             }
         }
+    )
 
 # Chapter Schemas
 class ChapterCreate(BaseModel):
@@ -62,8 +66,8 @@ class ChapterCreate(BaseModel):
     video_url: Optional[str] = None
     video_path: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "chapter_name": "餐廳點餐",
                 "description": "學習在餐廳用餐時的常用對話，包含點餐、詢問菜品和結帳等情境",
@@ -71,6 +75,7 @@ class ChapterCreate(BaseModel):
                 "video_url": "https://example.com/videos/restaurant_order.mp4",
             }
         }
+    )
 
 class ChapterUpdate(BaseModel):
     chapter_name: Optional[str] = None
@@ -81,8 +86,8 @@ class ChapterUpdate(BaseModel):
     video_duration: Optional[float] = None
     video_format: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "chapter_name": "餐廳進階對話",
                 "description": "學習更進階的餐廳對話，包含特殊需求和處理問題的情境",
@@ -90,24 +95,26 @@ class ChapterUpdate(BaseModel):
                 "video_url": "https://example.com/videos/restaurant_advanced.mp4",
             }
         }
+    )
 
 class ChapterOrder(BaseModel):
     chapter_id: UUID
     sequence_number: int
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "chapter_id": "550e8400-e29b-41d4-a716-446655440001",
                 "sequence_number": 2
             }
         }
+    )
 
 class ChapterReorder(BaseModel):
     chapter_orders: List[ChapterOrder]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "chapter_orders": [
                     {"chapter_id": "550e8400-e29b-41d4-a716-446655440001", "sequence_number": 2},
@@ -115,6 +122,7 @@ class ChapterReorder(BaseModel):
                 ]
             }
         }
+    )
 
 class ChapterResponse(BaseModel):
     chapter_id: UUID
@@ -126,8 +134,8 @@ class ChapterResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "chapter_id": "550e8400-e29b-41d4-a716-446655440001",
                 "situation_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -139,6 +147,7 @@ class ChapterResponse(BaseModel):
                 "updated_at": "2025-05-01T06:04:16.148463"
             }
         }
+    )
 
 # Sentence Schemas
 class SentenceCreate(BaseModel):
@@ -149,8 +158,8 @@ class SentenceCreate(BaseModel):
     start_time: Optional[float] = None  # 在影片中的開始時間（秒）
     end_time: Optional[float] = None    # 在影片中的結束時間（秒）
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "sentence_name": "基本點餐對話",
                 "speaker_role": "self",
@@ -160,6 +169,7 @@ class SentenceCreate(BaseModel):
                 "end_time": 15.2
             }
         }
+    )
 
 class SentenceUpdate(BaseModel):
     sentence_name: Optional[str] = None
@@ -169,8 +179,8 @@ class SentenceUpdate(BaseModel):
     start_time: Optional[float] = None
     end_time: Optional[float] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "sentence_name": "修改後的點餐對話",
                 "speaker_role": "self",
@@ -180,6 +190,7 @@ class SentenceUpdate(BaseModel):
                 "end_time": 16.0
             }
         }
+    )
 
 class SentenceResponse(BaseModel):
     sentence_id: UUID
@@ -193,8 +204,8 @@ class SentenceResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
                 "chapter_id": "550e8400-e29b-41d4-a716-446655440001",
@@ -208,19 +219,21 @@ class SentenceResponse(BaseModel):
                 "updated_at": "2025-05-01T06:05:16.518057"
             }
         }
+    )
 
 # PracticeRecord Schemas
 class PracticeRecordCreate(BaseModel):
     sentence_id: UUID
     audio_path: Optional[str] = None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
                 "audio_path": "/storage/audio/user_recording_123.mp3"
             }
         }
+    )
 
 class PracticeRecordResponse(BaseModel):
     practice_record_id: UUID
@@ -231,8 +244,8 @@ class PracticeRecordResponse(BaseModel):
     audio_path: Optional[str]
     created_at: datetime
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
                 "user_id": "550e8400-e29b-41d4-a716-446655440005",
@@ -243,14 +256,15 @@ class PracticeRecordResponse(BaseModel):
                 "created_at": "2025-05-01T06:10:30.000000"
             }
         }
+    )
 
 # List Response Schemas
 class SituationListResponse(BaseModel):
     total: int
     situations: List[SituationResponse]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total": 1,
                 "situations": [{
@@ -263,13 +277,14 @@ class SituationListResponse(BaseModel):
                 }]
             }
         }
+    )
 
 class ChapterListResponse(BaseModel):
     total: int
     chapters: List[ChapterResponse]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total": 1,
                 "chapters": [{
@@ -286,13 +301,14 @@ class ChapterListResponse(BaseModel):
                 }]
             }
         }
+    )
 
 class SentenceListResponse(BaseModel):
     total: int
     sentences: List[SentenceResponse]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total": 1,
                 "sentences": [{
@@ -309,13 +325,14 @@ class SentenceListResponse(BaseModel):
                 }]
             }
         }
+    )
 
 class PracticeRecordListResponse(BaseModel):
     total: int
     practice_records: List[PracticeRecordResponse]
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "total": 1,
                 "practice_records": [{
@@ -330,4 +347,4 @@ class PracticeRecordListResponse(BaseModel):
                 }]
             }
         }
-
+    )
