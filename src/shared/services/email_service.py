@@ -246,7 +246,6 @@ class EmailService:
         subject: str,
         html_content: str,
         custom_headers: Optional[Dict[str, str]] = None,
-        retry_count: int = 0
     ) -> None:
         """
         發送電子郵件的通用方法
@@ -256,7 +255,6 @@ class EmailService:
             subject: 郵件主旨
             html_content: HTML 格式的郵件內容
             custom_headers: 自定義的郵件標頭
-            retry_count: 目前重試次數
             
         Raises:
             HTTPException: 當郵件發送失敗時拋出 500 錯誤
@@ -267,89 +265,69 @@ class EmailService:
             "body": html_content
         }
 
-        try:
-            # 如果是重試，添加延遲
+        for retry_count in range(self.max_retries + 1):
             if retry_count > 0:
                 await asyncio.sleep(1 * retry_count)  # 隨著重試次數增加延遲
-                
-            # 使用詳細的超時配置
-            timeout_config = httpx.Timeout(
-                connect=self.connect_timeout,
-                read=self.read_timeout,
-                write=self.write_timeout,
-                pool=None
-            )
-            
-            async with httpx.AsyncClient(
-                timeout=timeout_config,
-                verify=False  # 允許自簽名證書，僅用於開發環境
-            ) as client:
-                logging.info(f"嘗試連接郵件服務 {self.base_url} (重試次數: {retry_count})")
-                response = await client.post(
-                    f"{self.base_url}/send-email",
-                    json=payload
-                )
-                
-                if response.status_code != 200:
-                    error_json = await response.json()
-                    error_detail = error_json.get("error", "未知錯誤")
-                    raise HTTPException(
-                        status_code=response.status_code,
-                        detail=f"郵件服務錯誤: {error_detail}"
-                    )
 
-        except (ConnectError, ReadTimeout) as e:
-            error_msg = (
-                f"郵件服務連接失敗 (嘗試次數: {retry_count + 1}/{self.max_retries + 1})\n"
-                f"目標地址: {self.base_url}\n"
-                f"錯誤詳情: {str(e)}"
-            )
-            logging.error(f"{error_msg}: {str(e)}")
-            if retry_count < self.max_retries:
-                return await self.send_email(
-                    to_email,
-                    subject,
-                    html_content,
-                    custom_headers,
-                    retry_count + 1
+            try:
+                # 使用詳細的超時配置
+                timeout_config = httpx.Timeout(
+                    connect=self.connect_timeout,
+                    read=self.read_timeout,
+                    write=self.write_timeout,
+                    pool=None
                 )
-            raise HTTPException(status_code=500, detail=error_msg)
-            
-        except asyncio.TimeoutError:
-            error_msg = (
-                f"發送郵件超時\n"
-                f"目標地址: {self.base_url}\n"
-                f"連接超時: {self.connect_timeout}秒\n"
-                f"讀取超時: {self.read_timeout}秒"
-            )
-            logging.error(f"{error_msg} (嘗試次數: {retry_count + 1}/{self.max_retries + 1})")
-            if retry_count < self.max_retries:
-                return await self.send_email(
-                    to_email,
-                    subject,
-                    html_content,
-                    custom_headers,
-                    retry_count + 1
+                
+                async with httpx.AsyncClient(
+                    timeout=timeout_config,
+                    verify=False  # 允許自簽名證書，僅用於開發環境
+                ) as client:
+                    logging.info(f"嘗試連接郵件服務 {self.base_url} (重試次數: {retry_count})")
+                    response = await client.post(
+                        f"{self.base_url}/send-email",
+                        json=payload
+                    )
+                    
+                    if response.status_code != 200:
+                        error_json = response.json()
+                        error_detail = error_json.get("error", "未知錯誤")
+                        raise HTTPException(
+                            status_code=response.status_code,
+                            detail=f"郵件服務錯誤: {error_detail}"
+                        )
+                    return # 成功發送，退出循環
+
+            except (ConnectError, ReadTimeout) as e:
+                error_msg = (
+                    f"郵件服務連接失敗 (嘗試次數: {retry_count + 1}/{self.max_retries + 1})\n"
+                    f"目標地址: {self.base_url}\n"
+                    f"錯誤詳情: {str(e)}"
                 )
-            raise HTTPException(status_code=500, detail=f"{error_msg}，請稍後再試")
-            
-        except Exception as e:
-            error_msg = (
-                f"發送郵件時發生錯誤\n"
-                f"目標地址: {self.base_url}\n"
-                f"錯誤類型: {e.__class__.__name__}\n"
-                f"錯誤詳情: {str(e)}"
-            )
-            logging.error(f"{error_msg} (嘗試次數: {retry_count + 1}/{self.max_retries + 1})")
-            if retry_count < self.max_retries:
-                return await self.send_email(
-                    to_email,
-                    subject,
-                    html_content,
-                    custom_headers,
-                    retry_count + 1
+                logging.error(f"{error_msg}: {str(e)}")
+                if retry_count == self.max_retries:
+                    raise HTTPException(status_code=500, detail=error_msg)
+                
+            except asyncio.TimeoutError:
+                error_msg = (
+                    f"發送郵件超時\n"
+                    f"目標地址: {self.base_url}\n"
+                    f"連接超時: {self.connect_timeout}秒\n"
+                    f"讀取超時: {self.read_timeout}秒"
                 )
-            raise HTTPException(status_code=500, detail=error_msg)
+                logging.error(f"{error_msg} (嘗試次數: {retry_count + 1}/{self.max_retries + 1})")
+                if retry_count == self.max_retries:
+                    raise HTTPException(status_code=500, detail=f"{error_msg}，請稍後再試")
+                
+            except Exception as e:
+                error_msg = (
+                    f"發送郵件時發生錯誤\n"
+                    f"目標地址: {self.base_url}\n"
+                    f"錯誤類型: {e.__class__.__name__}\n"
+                    f"錯誤詳情: {str(e)}"
+                )
+                logging.error(f"{error_msg} (嘗試次數: {retry_count + 1}/{self.max_retries + 1})")
+                if retry_count == self.max_retries:
+                    raise HTTPException(status_code=500, detail=error_msg)
 
     async def send_verification_email(
         self,

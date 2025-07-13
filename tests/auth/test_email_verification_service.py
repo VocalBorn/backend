@@ -8,7 +8,6 @@ from unittest.mock import Mock, patch, AsyncMock, ANY
 from fastapi import HTTPException
 from datetime import datetime, timedelta
 
-# 導入 course.models 和 therapist.models 以解決 SQLAlchemy 的依賴問題
 import src.course.models
 import src.therapist.models
 

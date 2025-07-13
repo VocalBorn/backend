@@ -1,7 +1,7 @@
 import random
 import string
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 from uuid import UUID
 
@@ -72,7 +72,7 @@ def generate_pairing_token(
     token_code = _generate_token_code(session)
 
     # 計算過期時間
-    expires_at = datetime.now() + timedelta(hours=token_data.expires_in_hours)
+    expires_at = datetime.now(timezone.utc) + timedelta(hours=token_data.expires_in_hours)
 
     # 建立token
     token = PairingToken(
@@ -112,7 +112,7 @@ def validate_token(session: Session, token_code: str) -> TokenValidationResponse
         return TokenValidationResponse(is_valid=False)
 
     # 檢查是否過期
-    if datetime.now() > token.expires_at:
+    if datetime.now(timezone.utc) > token.expires_at:
         return TokenValidationResponse(is_valid=False)
 
     # 檢查使用次數
@@ -163,7 +163,7 @@ def use_token(session: Session, token_code: str, client_id: UUID) -> PairingResp
         )
 
     # 檢查token是否有效
-    if datetime.now() > token.expires_at:
+    if datetime.now(timezone.utc) > token.expires_at:
         raise HTTPException(
             status_code=400,
             detail="Token已過期"

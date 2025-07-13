@@ -5,6 +5,7 @@ JWT Service 單元測試
 
 import pytest
 import time
+from datetime import timezone
 from unittest.mock import Mock, patch
 from fastapi import HTTPException
 from fastapi.security import HTTPAuthorizationCredentials
