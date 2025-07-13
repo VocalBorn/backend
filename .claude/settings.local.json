@@ -5,7 +5,8 @@
       "Bash(python -m pytest tests/auth/test_account_service.py -v)",
       "Bash(python3 -m pytest tests/auth/test_account_service.py -v)",
       "Bash(source:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
