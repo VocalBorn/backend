@@ -12,6 +12,7 @@ from src.auth.schemas import (
     PermissionResponse,
     UserStatsResponse
 )
+from src.therapist.schemas import TherapistClientResponse
 from src.auth.services.admin_service import (
     delete_user,
     get_all_users,
@@ -21,7 +22,8 @@ from src.auth.services.admin_service import (
     get_clients,
     promote_to_therapist,
     promote_to_admin,
-    demote_to_client
+    demote_to_client,
+    get_therapist_clients_by_id
 )
 from src.auth.services.permission_service import (
     RequireAdmin,
@@ -105,6 +107,22 @@ async def get_clients_list(
     session: Session = Depends(get_session)
 ):
     return await get_clients(session)
+
+@router.get(
+    "/therapists/{therapist_id}/clients", 
+    response_model=List[TherapistClientResponse],
+    summary="取得指定治療師的客戶列表",
+    description="""
+    管理員取得指定治療師的客戶列表。
+    此端點需要 'manage_users' 權限。
+    """
+)
+async def get_therapist_clients_list(
+    therapist_id: UUID,
+    current_user: User = Depends(RequireManageUsers),
+    session: Session = Depends(get_session)
+):
+    return await get_therapist_clients_by_id(therapist_id, session)
 
 @router.delete(
     "/users/{user_id}", 
