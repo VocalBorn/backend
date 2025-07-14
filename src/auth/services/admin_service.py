@@ -292,9 +292,38 @@ async def get_therapist_clients_by_id(therapist_id: UUID, session: Session) -> L
                 detail="指定的用戶不是治療師"
             )
         
-        # 獲取治療師的客戶列表
-        clients = therapist_service.get_therapist_clients(session, therapist_id)
-        return clients
+        # 獲取治療師的客戶關係列表
+        therapist_clients = therapist_service.get_therapist_clients(session, therapist_id)
+        
+        # 組合客戶詳細資訊
+        result = []
+        for tc in therapist_clients:
+            # 查詢客戶資訊
+            client = session.exec(
+                select(User).where(User.user_id == tc.client_id)
+            ).first()
+            
+            client_info = None
+            if client:
+                client_info = {
+                    "name": client.name,
+                    "gender": client.gender,
+                    "age": client.age,
+                    "phone": client.phone,
+                    "role": client.role
+                }
+            
+            # 創建 TherapistClientResponse
+            response = TherapistClientResponse(
+                id=tc.id,
+                therapist_id=tc.therapist_id,
+                client_id=tc.client_id,
+                created_at=tc.created_at,
+                client_info=client_info
+            )
+            result.append(response)
+        
+        return result
         
     except HTTPException:
         raise
