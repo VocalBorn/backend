@@ -1,27 +1,58 @@
 # 後端 Backend
 Python 版本為 3.13.0
+
+專案使用 [uv](https://github.com/astral-sh/uv) 進行套件管理，提供更快速的相依性解析和安裝。
+
 ## ⚠️ 重要：請務必去 Notion 中載入最新的 .env 檔案
 
 ## 環境設定
-### 建立虛擬環境
+
+### 安裝 uv
+```bash
+# macOS 使用 Homebrew 安裝（推薦）
+brew install uv
+
+# 或使用 curl 安裝
+curl -LsSf https://astral.sh/uv/install.sh | sh
 ```
-python -m venv venv
+
+### 初始化專案環境
+```bash
+# 同步並安裝所有相依套件
+uv sync
+
+# 或進入虛擬環境
+uv shell
 ```
-或使用 VSCode 的虛擬環境
-### 安裝套件
-```
-pip install -r requirements.txt
-```
+
 ### 啟動開發伺服器
+```bash
+uv run fastapi dev src/main.py
 ```
-fastapi dev src/main.py
-```
-### 如何將新增的套件加入 requirements.txt
-```
-pip freeze > requirements.txt
+
+### 套件管理
+```bash
+# 新增生產相依套件
+uv add package-name
+
+# 新增開發相依套件
+uv add --dev package-name
+
+# 移除套件
+uv remove package-name
+
+# 更新套件
+uv update
+
+# 檢視已安裝套件
+uv pip list
 ```
 ### 如何執行docker
-```
+```bash
+# 建立 Docker 映像檔
+docker build -t vocalborn_backend .
+
+# 執行 Docker 容器
 docker run -d -p 5001:5000 vocalborn_backend
 ```
 ## 編輯Draw.io 檔案
@@ -34,7 +65,7 @@ docker run -d -p 5001:5000 vocalborn_backend
 1. 確保已正確設定 `.env` 檔案中的資料庫連接資訊
 2. 執行遷移以建立資料庫結構：
 ```bash
-alembic upgrade head
+uv run alembic upgrade head
 ```
 
 ### 資料庫變更流程
@@ -43,36 +74,63 @@ alembic upgrade head
 1. 在程式碼中修改 SQLModel 模型定義（models.py），並檢查 env.py 是否有導入模型
 2. 生成新的遷移檔：
 ```bash
-alembic revision --autogenerate -m "描述變更內容"
+uv run alembic revision --autogenerate -m "描述變更內容"
 ```
 3. 檢查生成的遷移檔案（在 alembic/versions/ 目錄下）確保正確性
 4. 應用變更：
 ```bash
-alembic upgrade head
+uv run alembic upgrade head
 ```
 
 ### 常用指令參考
 ```bash
 # 查看目前版本
-alembic current
+uv run alembic current
 
 # 檢視遷移歷史
-alembic history
+uv run alembic history
 
 # 回滾到上一個版本
-alembic downgrade -1
+uv run alembic downgrade -1
 
 # 回滾到特定版本
-alembic downgrade <版本號>
+uv run alembic downgrade <版本號>
 
 # 預覽將生成的 SQL（不執行）
-alembic upgrade head --sql
+uv run alembic upgrade head --sql
 ```
 
 ### 注意事項
 - 所有資料庫結構變更都必須通過 Alembic 遷移來進行
 - 遷移檔案應該被加入版本控制系統
 - 建議在提交程式碼前先在本地測試遷移是否能正常運作
+
+## 測試
+```bash
+# 執行所有測試
+uv run pytest
+
+# 執行特定測試檔案
+uv run pytest tests/test_auth.py
+
+# 執行測試並顯示覆蓋率（需安裝 pytest-cov）
+uv run pytest --cov=src
+```
+
+## 程式碼品質檢查
+```bash
+# 程式碼格式化（需先安裝 black）
+uv add --dev black
+uv run black src/
+
+# 型別檢查（需先安裝 mypy）
+uv add --dev mypy
+uv run mypy src/
+
+# 程式碼風格檢查（需先安裝 flake8）
+uv add --dev flake8
+uv run flake8 src/
+```
 
 ## Conventional Commits：
 - feat: 新功能
