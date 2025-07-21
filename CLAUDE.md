@@ -141,11 +141,11 @@ async def process_payment(payment_data: PaymentData):
 
 ### 環境設定
 ```bash
-# 建立虛擬環境
-python -m venv venv
+# 建立虛擬環境（通常已有，直接進入即可）
+python -m venv .venv
 
 # 進入虛擬環境
-source venv/bin/activate  
+source .venv/bin/activate  
 
 # 安裝相依套件
 pip install -r requirements.txt

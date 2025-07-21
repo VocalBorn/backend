@@ -174,4 +174,12 @@ RequireManageUsers = require_permission(Permission.MANAGE_USERS)
 # 常用的角色檢查依賴項
 RequireAdmin = require_role([UserRole.ADMIN])
 RequireTherapist = require_role([UserRole.THERAPIST])
+RequireClient = require_role([UserRole.CLIENT])
 RequireAdminOrTherapist = require_role([UserRole.ADMIN, UserRole.THERAPIST])
+RequireClientOrTherapist = require_role([UserRole.CLIENT, UserRole.THERAPIST])
+
+# 方便使用的別名
+require_admin = RequireAdmin
+require_therapist = RequireTherapist
+require_client = RequireClient
+require_client_or_therapist = RequireClientOrTherapist

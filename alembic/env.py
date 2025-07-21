@@ -20,7 +20,10 @@ sys.path.insert(0, str(project_root))
 
 # 導入所有模型以確保 Alembic 能偵測到它們
 from src.auth.models import Account, EmailVerification, User, UserWord
-from src.course.models import Situation, Chapter, Sentence, PracticeRecord
+from src.course.models import (
+    Situation, Chapter, Sentence, PracticeRecord, PracticeFeedback,
+    AIAnalysisQueue, AIAnalysisResult
+)
 from src.therapist.models import TherapistProfile, TherapistClient
 from src.pairing.models import PairingToken
 from src.verification.models import TherapistApplication, UploadedDocument
