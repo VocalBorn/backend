@@ -111,6 +111,8 @@ class RecordingResponse(BaseModel):
     file_size: Optional[int]
     content_type: Optional[str]
     recorded_at: Optional[datetime]
+    stream_url: Optional[str] = None  # 可播放的URL（如果有錄音）
+    stream_expires_at: Optional[datetime] = None  # URL過期時間
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -120,7 +122,9 @@ class RecordingResponse(BaseModel):
                 "audio_duration": 30.5,
                 "file_size": 1024000,
                 "content_type": "audio/mpeg",
-                "recorded_at": "2025-07-22T10:15:30.000Z"
+                "recorded_at": "2025-07-22T10:15:30.000Z",
+                "stream_url": "https://minio.example.com/practice-recordings/presigned-url...",
+                "stream_expires_at": "2025-07-22T11:15:30.000Z"
             }
         }
     )
@@ -134,17 +138,32 @@ class RecordingsListResponse(BaseModel):
         json_schema_extra={
             "example": {
                 "practice_session_id": "550e8400-e29b-41d4-a716-446655440001",
-                "recordings": [{
-                    "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
-                    "audio_path": "/storage/audio/user_recording_123.mp3",
-                    "audio_duration": 30.5,
-                    "file_size": 1024000,
-                    "content_type": "audio/mpeg",
-                    "recorded_at": "2025-07-22T10:15:30.000Z"
-                }]
+                "recordings": [
+                    {
+                        "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
+                        "audio_path": "/storage/audio/user_recording_123.mp3",
+                        "audio_duration": 30.5,
+                        "file_size": 1024000,
+                        "content_type": "audio/mpeg",
+                        "recorded_at": "2025-07-22T10:15:30.000Z",
+                        "stream_url": "https://minio.example.com/practice-recordings/presigned-url?expires=1642865730",
+                        "stream_expires_at": "2025-07-22T11:15:30.000Z"
+                    },
+                    {
+                        "sentence_id": "550e8400-e29b-41d4-a716-446655440004",
+                        "audio_path": "null",
+                        "audio_duration": "null",
+                        "file_size": "null",
+                        "content_type": "null",
+                        "recorded_at": "null",
+                        "stream_url": "null",
+                        "stream_expires_at": "null"
+                    }
+                ]
             }
         }
     )
+
 
 # PracticeRecord Schemas - 重新命名原有的為向後相容
 PracticeRecordCreate = PracticeSessionCreate  # 向後相容性別名

@@ -31,11 +31,43 @@ from src.practice.services.practice_service import (
 )
 
 from src.storage.practice_recording_service import practice_recording_service
+from datetime import datetime, timedelta
 
 router = APIRouter(
     prefix='/practice/sessions',
     tags=['practice-recordings']
 )
+
+def _create_recording_response(practice_record, user_id: str) -> RecordingResponse:
+    """建立錄音回應，包含播放 URL（如果有錄音）"""
+    stream_url = None
+    stream_expires_at = None
+    
+    # 如果有錄音檔案，生成播放 URL
+    if practice_record.audio_path:
+        try:
+            stream_url = practice_recording_service.get_practice_recording_url(
+                str(practice_record.practice_record_id),
+                user_id,
+                expires_minutes=30
+            )
+            stream_expires_at = datetime.now() + timedelta(minutes=30)
+        except Exception as e:
+            # 生成 URL 失敗時記錄錯誤但不中斷流程
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"生成播放 URL 失敗: {str(e)}")
+    
+    return RecordingResponse(
+        sentence_id=practice_record.sentence_id,
+        audio_path=practice_record.audio_path,
+        audio_duration=practice_record.audio_duration,
+        file_size=practice_record.file_size,
+        content_type=practice_record.content_type,
+        recorded_at=practice_record.recorded_at,
+        stream_url=stream_url,
+        stream_expires_at=stream_expires_at
+    )
 
 @router.put(
     "/{practice_session_id}/recordings/{sentence_id}",
@@ -139,17 +171,10 @@ async def get_session_recordings(
     
     practice_records = session.exec(statement).all()
     
-    # 轉換為錄音回應格式
+    # 轉換為錄音回應格式，包含播放 URL
     recordings = []
     for record in practice_records:
-        recording = RecordingResponse(
-            sentence_id=record.sentence_id,
-            audio_path=record.audio_path,
-            audio_duration=record.audio_duration,
-            file_size=record.file_size,
-            content_type=record.content_type,
-            recorded_at=record.recorded_at
-        )
+        recording = _create_recording_response(record, str(current_user.user_id))
         recordings.append(recording)
     
     return RecordingsListResponse(
@@ -190,14 +215,8 @@ async def get_sentence_recording(
             detail="該句子尚未錄音"
         )
     
-    return RecordingResponse(
-        sentence_id=practice_record.sentence_id,
-        audio_path=practice_record.audio_path,
-        audio_duration=practice_record.audio_duration,
-        file_size=practice_record.file_size,
-        content_type=practice_record.content_type,
-        recorded_at=practice_record.recorded_at
-    )
+    return _create_recording_response(practice_record, str(current_user.user_id))
+
 
 
 @router.delete(
