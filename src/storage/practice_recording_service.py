@@ -51,7 +51,7 @@ class PracticeRecordingService:
             )
             
             # 將錄音資訊存入資料庫
-            from src.course.models import PracticeRecord
+            from src.practice.models import PracticeRecord
             from datetime import datetime
             import uuid as uuid_module
             

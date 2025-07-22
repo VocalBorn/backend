@@ -1,10 +1,10 @@
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 from pydantic import BaseModel
 from pydantic import ConfigDict
 from uuid import UUID
 
-from src.course.models import SpeakerRole, PracticeStatus
+from src.course.models import SpeakerRole
 
 # Situation Schemas
 class SituationCreate(BaseModel):
@@ -221,143 +221,6 @@ class SentenceResponse(BaseModel):
         }
     )
 
-# PracticeRecord Schemas
-class PracticeRecordCreate(BaseModel):
-    sentence_id: UUID
-    begin_time: Optional[datetime] = None
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
-                "begin_time": "2025-05-01T06:10:00.000000"
-            }
-        }
-    )
-
-class PracticeRecordUpdate(BaseModel):
-    practice_status: Optional[PracticeStatus] = None
-    end_time: Optional[datetime] = None
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "practice_status": "completed",
-                "end_time": "2025-05-01T06:10:30.000000"
-            }
-        }
-    )
-
-class PracticeRecordResponse(BaseModel):
-    practice_record_id: UUID
-    user_id: UUID
-    sentence_id: UUID
-    audio_path: Optional[str]
-    audio_duration: Optional[float]
-    file_size: Optional[int]
-    content_type: Optional[str]
-    practice_status: PracticeStatus
-    begin_time: Optional[datetime]
-    end_time: Optional[datetime]
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
-                "user_id": "550e8400-e29b-41d4-a716-446655440005",
-                "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
-                "audio_path": "/storage/audio/user_recording_123.mp3",
-                "audio_duration": 30.5,
-                "file_size": 1024000,
-                "content_type": "audio/mpeg",
-                "practice_status": "completed",
-                "begin_time": "2025-05-01T06:10:00.000000",
-                "end_time": "2025-05-01T06:10:30.000000",
-                "created_at": "2025-05-01T06:10:30.000000",
-                "updated_at": "2025-05-01T06:10:30.000000"
-            }
-        }
-    )
-
-# PracticeFeedback Schemas
-class PracticeFeedbackCreate(BaseModel):
-    practice_record_id: UUID
-    content: str
-    pronunciation_accuracy: Optional[float] = None
-    suggestions: Optional[str] = None
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
-                "content": "發音清晰，但語調需要調整",
-                "pronunciation_accuracy": 85.5,
-                "suggestions": "建議多練習語調的起伏變化"
-            }
-        }
-    )
-
-class PracticeFeedbackUpdate(BaseModel):
-    content: Optional[str] = None
-    pronunciation_accuracy: Optional[float] = None
-    suggestions: Optional[str] = None
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "content": "發音有明顯改善",
-                "pronunciation_accuracy": 90.0,
-                "suggestions": "繼續保持練習頻率"
-            }
-        }
-    )
-
-class PracticeFeedbackResponse(BaseModel):
-    feedback_id: UUID
-    practice_record_id: UUID
-    therapist_id: UUID
-    content: str
-    pronunciation_accuracy: Optional[float]
-    suggestions: Optional[str]
-    created_at: datetime
-    updated_at: datetime
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "feedback_id": "550e8400-e29b-41d4-a716-446655440006",
-                "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
-                "therapist_id": "550e8400-e29b-41d4-a716-446655440007",
-                "content": "發音清晰，但語調需要調整",
-                "pronunciation_accuracy": 85.5,
-                "suggestions": "建議多練習語調的起伏變化",
-                "created_at": "2025-05-01T06:15:00.000000",
-                "updated_at": "2025-05-01T06:15:00.000000"
-            }
-        }
-    )
-
-# 練習統計相關 Schemas
-class PracticeStatsResponse(BaseModel):
-    total_practices: int
-    total_duration: float  # 總練習時長（秒）
-    average_accuracy: Optional[float]  # 平均準確度
-    completed_sentences: int  # 已完成的句子數
-    pending_feedback: int  # 待回饋數量
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "total_practices": 25,
-                "total_duration": 1200.5,
-                "average_accuracy": 88.5,
-                "completed_sentences": 15,
-                "pending_feedback": 3
-            }
-        }
-    )
 
 # List Response Schemas
 class SituationListResponse(BaseModel):
@@ -428,50 +291,3 @@ class SentenceListResponse(BaseModel):
         }
     )
 
-class PracticeRecordListResponse(BaseModel):
-    total: int
-    practice_records: List[PracticeRecordResponse]
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "total": 1,
-                "practice_records": [{
-                    "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
-                    "user_id": "550e8400-e29b-41d4-a716-446655440005",
-                    "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
-                    "audio_path": "/storage/audio/user_recording_123.mp3",
-                    "audio_duration": 30.5,
-                    "file_size": 1024000,
-                    "content_type": "audio/mpeg",
-                    "practice_status": "completed",
-                    "begin_time": "2025-05-01T06:10:00.000000",
-                    "end_time": "2025-05-01T06:10:30.000000",
-                    "created_at": "2025-05-01T06:10:30.000000",
-                    "updated_at": "2025-05-01T06:10:30.000000"
-                }]
-            }
-        }
-    )
-
-class PracticeFeedbackListResponse(BaseModel):
-    total: int
-    feedbacks: List[PracticeFeedbackResponse]
-
-    model_config = ConfigDict(
-        json_schema_extra={
-            "example": {
-                "total": 1,
-                "feedbacks": [{
-                    "feedback_id": "550e8400-e29b-41d4-a716-446655440006",
-                    "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
-                    "therapist_id": "550e8400-e29b-41d4-a716-446655440007",
-                    "content": "發音清晰，但語調需要調整",
-                    "pronunciation_accuracy": 85.5,
-                    "suggestions": "建議多練習語調的起伏變化",
-                    "created_at": "2025-05-01T06:15:00.000000",
-                    "updated_at": "2025-05-01T06:15:00.000000"
-                }]
-            }
-        }
-    )

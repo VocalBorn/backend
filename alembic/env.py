@@ -5,7 +5,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import pool, MetaData
 
 from alembic import context
 from sqlmodel import create_engine, SQLModel
@@ -21,13 +21,25 @@ sys.path.insert(0, str(project_root))
 # 導入所有模型以確保 Alembic 能偵測到它們
 from src.auth.models import Account, EmailVerification, User, UserWord
 from src.course.models import (
-    Situation, Chapter, Sentence, PracticeRecord, PracticeFeedback,
-    AIAnalysisQueue, AIAnalysisResult
+    Situation, Chapter, Sentence
 )
+from src.practice.models import *
 from src.therapist.models import TherapistProfile, TherapistClient
 from src.pairing.models import PairingToken
 from src.verification.models import TherapistApplication, UploadedDocument
 
+# 設置命名約定
+convention = {
+    "ix": "ix_%(column_0_label)s",
+    "uq": "uq_%(table_name)s_%(column_0_name)s",
+    "ck": "ck_%(table_name)s_%(constraint_name)s",
+    "fk": "fk_%(table_name)s_%(column_0_name)s_%(referred_table_name)s",
+    "pk": "pk_%(table_name)s"
+}
+
+# 應用命名約定到 metadata
+target_metadata = SQLModel.metadata
+target_metadata.naming_convention = convention
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -40,7 +52,7 @@ if config.config_file_name is not None:
 
 # add your model's MetaData object here
 # for 'autogenerate' support
-target_metadata = SQLModel.metadata
+# target_metadata = SQLModel.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

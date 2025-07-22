@@ -3,7 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 
-from src.course.models import PracticeStatus, AIAnalysisQueueStatus, AIAnalysisPriority
+from src.practice.models import PracticeSessionStatus, PracticeRecordStatus
 
 # 錄音上傳相關 Schemas
 class AudioUploadRequest(BaseModel):
@@ -38,63 +38,155 @@ class AudioUploadResponse(BaseModel):
         }
     )
 
-# PracticeRecord Schemas
-class PracticeRecordCreate(BaseModel):
+# PracticeSession Schemas
+class PracticeSessionCreate(BaseModel):
+    """練習會話建立請求"""
     chapter_id: UUID
-    begin_time: Optional[datetime] = None
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "chapter_id": "550e8400-e29b-41d4-a716-446655440003",
-                "begin_time": "2025-07-14T10:00:00.000Z"
+                "chapter_id": "550e8400-e29b-41d4-a716-446655440003"
             }
         }
     )
 
-class PracticeRecordUpdate(BaseModel):
-    practice_status: Optional[PracticeStatus] = None
-    end_time: Optional[datetime] = None
+class PracticeSessionResponse(BaseModel):
+    """練習會話回應"""
+    practice_session_id: UUID
+    user_id: UUID
+    chapter_id: UUID
+    session_status: PracticeSessionStatus
+    begin_time: Optional[datetime]
+    end_time: Optional[datetime]
+    total_duration: Optional[int]
+    created_at: datetime
+    updated_at: datetime
+    # 包含章節基本資訊
+    chapter_name: Optional[str] = None
+    # 進度統計
+    total_sentences: int = 0
+    completed_sentences: int = 0
+    pending_sentences: int = 0
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "practice_session_id": "550e8400-e29b-41d4-a716-446655440001",
+                "user_id": "550e8400-e29b-41d4-a716-446655440005",
+                "chapter_id": "550e8400-e29b-41d4-a716-446655440002",
+                "session_status": "in_progress",
+                "begin_time": "2025-07-14T10:00:00.000Z",
+                "end_time": None,
+                "total_duration": None,
+                "created_at": "2025-07-14T10:00:00.000Z",
+                "updated_at": "2025-07-14T10:00:00.000Z",
+                "chapter_name": "第一章：基本對話",
+                "total_sentences": 5,
+                "completed_sentences": 2,
+                "pending_sentences": 3
+            }
+        }
+    )
+
+# === 會話記錄管理 Schemas ===
+class RecordUpdateRequest(BaseModel):
+    """練習記錄更新請求"""
+    record_status: PracticeRecordStatus
 
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
-                "practice_status": "completed",
-                "end_time": "2025-05-01T06:10:30.000000"
+                "record_status": "recorded"
+            }
+        }
+    )
+
+# === 會話錄音管理 Schemas ===
+class RecordingResponse(BaseModel):
+    """錄音檔案回應"""
+    sentence_id: UUID
+    audio_path: Optional[str]
+    audio_duration: Optional[float]
+    file_size: Optional[int]
+    content_type: Optional[str]
+    recorded_at: Optional[datetime]
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
+                "audio_path": "/storage/audio/user_recording_123.mp3",
+                "audio_duration": 30.5,
+                "file_size": 1024000,
+                "content_type": "audio/mpeg",
+                "recorded_at": "2025-07-22T10:15:30.000Z"
+            }
+        }
+    )
+
+class RecordingsListResponse(BaseModel):
+    """會話所有錄音列表回應"""
+    practice_session_id: UUID
+    recordings: List[RecordingResponse]
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "practice_session_id": "550e8400-e29b-41d4-a716-446655440001",
+                "recordings": [{
+                    "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
+                    "audio_path": "/storage/audio/user_recording_123.mp3",
+                    "audio_duration": 30.5,
+                    "file_size": 1024000,
+                    "content_type": "audio/mpeg",
+                    "recorded_at": "2025-07-22T10:15:30.000Z"
+                }]
+            }
+        }
+    )
+
+# PracticeRecord Schemas - 重新命名原有的為向後相容
+PracticeRecordCreate = PracticeSessionCreate  # 向後相容性別名
+
+class PracticeRecordUpdate(BaseModel):
+    """練習記錄更新請求"""
+    record_status: Optional[PracticeRecordStatus] = None
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "record_status": "recorded"
             }
         }
     )
 
 class PracticeRecordResponse(BaseModel):
+    """練習記錄回應"""
     practice_record_id: UUID
+    practice_session_id: UUID
     user_id: UUID
     chapter_id: UUID
-    sentence_id: Optional[UUID] = None
+    sentence_id: UUID  # 新結構中必須有句子ID
     audio_path: Optional[str]
     audio_duration: Optional[float]
     file_size: Optional[int]
     content_type: Optional[str]
-    practice_status: PracticeStatus
-    begin_time: Optional[datetime]
-    end_time: Optional[datetime]
+    record_status: PracticeRecordStatus
+    recorded_at: Optional[datetime]
     created_at: datetime
     updated_at: datetime
     # 包含章節基本資訊
     chapter_name: Optional[str] = None
-    # 包含句子基本資訊（如果已指定）
-    sentence_content: Optional[str] = None
-    sentence_name: Optional[str] = None
+    # 包含句子基本資訊（必須有，確保不為空）
+    sentence_content: str  # 改為必填，確保不為空
+    sentence_name: str  # 改為必填，確保不為空
     
-    # AI 分析相關資訊
-    ai_analysis_status: Optional[AIAnalysisQueueStatus] = None
-    ai_analysis_available: bool = False
-    ai_queue_position: Optional[int] = None
-    ai_estimated_wait_time: Optional[int] = None
-
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
                 "practice_record_id": "550e8400-e29b-41d4-a716-446655440004",
+                "practice_session_id": "550e8400-e29b-41d4-a716-446655440001",
                 "user_id": "550e8400-e29b-41d4-a716-446655440005",
                 "chapter_id": "550e8400-e29b-41d4-a716-446655440002",
                 "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
@@ -102,9 +194,8 @@ class PracticeRecordResponse(BaseModel):
                 "audio_duration": 30.5,
                 "file_size": 1024000,
                 "content_type": "audio/mpeg",
-                "practice_status": "completed",
-                "begin_time": "2025-05-01T06:10:00.000000",
-                "end_time": "2025-05-01T06:10:30.000000",
+                "record_status": "recorded",
+                "recorded_at": "2025-05-01T06:10:30.000000",
                 "created_at": "2025-05-01T06:10:30.000000",
                 "updated_at": "2025-05-01T06:10:30.000000",
                 "chapter_name": "第一章：基本對話",
@@ -191,13 +282,6 @@ class PracticeStatsResponse(BaseModel):
     pending_feedback: int  # 待回饋數量
     recent_practices: int  # 近期練習數（過去7天）
     
-    # AI 分析相關統計
-    total_ai_analyses: int  # 總 AI 分析數
-    pending_ai_analyses: int  # 待 AI 分析數
-    completed_ai_analyses: int  # 已完成 AI 分析數
-    failed_ai_analyses: int  # 失敗的 AI 分析數
-    average_ai_processing_time: Optional[float] = None  # 平均 AI 處理時間
-
     model_config = ConfigDict(
         json_schema_extra={
             "example": {
@@ -212,6 +296,34 @@ class PracticeStatsResponse(BaseModel):
     )
 
 # List Response Schemas
+class PracticeSessionListResponse(BaseModel):
+    """練習會話列表回應"""
+    total: int
+    practice_sessions: List[PracticeSessionResponse]
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "total": 3,
+                "practice_sessions": [{
+                    "practice_session_id": "550e8400-e29b-41d4-a716-446655440001",
+                    "user_id": "550e8400-e29b-41d4-a716-446655440005",
+                    "chapter_id": "550e8400-e29b-41d4-a716-446655440002",
+                    "session_status": "completed",
+                    "begin_time": "2025-07-14T10:00:00.000Z",
+                    "end_time": "2025-07-14T10:30:00.000Z",
+                    "total_duration": 1800,
+                    "created_at": "2025-07-14T10:00:00.000Z",
+                    "updated_at": "2025-07-14T10:30:00.000Z",
+                    "chapter_name": "第一章：基本對話",
+                    "total_sentences": 5,
+                    "completed_sentences": 5,
+                    "pending_sentences": 0
+                }]
+            }
+        }
+    )
+
 class PracticeRecordListResponse(BaseModel):
     total: int
     practice_records: List[PracticeRecordResponse]

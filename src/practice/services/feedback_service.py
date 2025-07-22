@@ -10,7 +10,8 @@ from typing import List, Optional
 from sqlmodel import Session, select, and_, desc, func
 from fastapi import HTTPException, status
 
-from src.course.models import PracticeRecord, PracticeStatus, Sentence, Chapter, PracticeFeedback
+from src.course.models import Sentence, Chapter
+from src.practice.models import PracticeRecord, PracticeRecordStatus, PracticeSession, PracticeFeedback
 from src.auth.models import User, UserRole
 from src.practice.schemas import (
     PracticeFeedbackCreate,
@@ -78,7 +79,7 @@ async def create_practice_feedback(
     session.add(feedback)
     
     # 更新練習記錄狀態為已分析
-    practice_record.practice_status = PracticeStatus.ANALYZED
+    practice_record.record_status = PracticeRecordStatus.ANALYZED
     practice_record.updated_at = datetime.now()
     session.add(practice_record)
     
@@ -109,10 +110,11 @@ async def get_practice_feedback(
     Raises:
         HTTPException: 當回饋不存在或無權限時
     """
-    # 查詢回饋及相關資訊
+    # 查詢回饋及相關資訊（透過 PracticeSession 檢查用戶權限）
     statement = (
-        select(PracticeFeedback, PracticeRecord, User)
+        select(PracticeFeedback, PracticeRecord, PracticeSession, User)
         .join(PracticeRecord, PracticeFeedback.practice_record_id == PracticeRecord.practice_record_id)
+        .join(PracticeSession, PracticeRecord.practice_session_id == PracticeSession.practice_session_id)
         .join(User, PracticeFeedback.therapist_id == User.user_id)
         .where(PracticeFeedback.practice_record_id == practice_record_id)
     )
@@ -124,10 +126,10 @@ async def get_practice_feedback(
             detail="回饋不存在"
         )
     
-    feedback, practice_record, therapist = result
+    feedback, practice_record, practice_session, therapist = result
     
     # 檢查權限：只有練習者本人或治療師可以查看
-    if practice_record.user_id != user_id and feedback.therapist_id != user_id:
+    if practice_session.user_id != user_id and feedback.therapist_id != user_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="無權限查看此回饋"
@@ -224,27 +226,30 @@ async def list_therapist_pending_practices(
             pending_practices=[]
         )
     
-    # 查詢待分析的練習記錄
+    # 查詢待分析的練習記錄（已錄音但無回饋的記錄）
     base_conditions = [
-        PracticeRecord.user_id.in_(client_ids),
-        PracticeRecord.practice_status == PracticeStatus.COMPLETED,
+        PracticeSession.user_id.in_(client_ids),
+        PracticeRecord.record_status.in_([PracticeRecordStatus.RECORDED, PracticeRecordStatus.AI_ANALYZED]),
         ~select(PracticeFeedback.feedback_id).where(
             PracticeFeedback.practice_record_id == PracticeRecord.practice_record_id
         ).exists()
     ]
     
     # 查詢總數
-    count_statement = select(func.count(PracticeRecord.practice_record_id)).where(
-        and_(*base_conditions)
+    count_statement = (
+        select(func.count(PracticeRecord.practice_record_id))
+        .join(PracticeSession, PracticeRecord.practice_session_id == PracticeSession.practice_session_id)
+        .where(and_(*base_conditions))
     )
     total = session.exec(count_statement).one()
     
-    # 查詢記錄，包含用戶、章節和句子資訊
+    # 查詢記錄，包含會話、用戶、章節和句子資訊
     statement = (
-        select(PracticeRecord, User, Chapter, Sentence)
-        .join(User, PracticeRecord.user_id == User.user_id)
-        .join(Chapter, PracticeRecord.chapter_id == Chapter.chapter_id)
-        .outerjoin(Sentence, PracticeRecord.sentence_id == Sentence.sentence_id)
+        select(PracticeRecord, PracticeSession, User, Chapter, Sentence)
+        .join(PracticeSession, PracticeRecord.practice_session_id == PracticeSession.practice_session_id)
+        .join(User, PracticeSession.user_id == User.user_id)
+        .join(Chapter, PracticeSession.chapter_id == Chapter.chapter_id)
+        .join(Sentence, PracticeRecord.sentence_id == Sentence.sentence_id)
         .where(and_(*base_conditions))
         .order_by(desc(PracticeRecord.created_at))
         .offset(skip)
@@ -257,18 +262,18 @@ async def list_therapist_pending_practices(
     pending_practices = []
     current_time = datetime.now()
     
-    for practice_record, user, chapter, sentence in results:
+    for practice_record, practice_session, user, chapter, sentence in results:
         days_since_practice = (current_time - practice_record.created_at).days
         
         response = TherapistPendingPracticeResponse(
             practice_record_id=practice_record.practice_record_id,
-            user_id=practice_record.user_id,
+            user_id=practice_session.user_id,
             user_name=user.name,
-            chapter_id=practice_record.chapter_id,
+            chapter_id=practice_session.chapter_id,
             chapter_name=chapter.chapter_name,
             sentence_id=practice_record.sentence_id,
-            sentence_content=sentence.content if sentence else None,
-            sentence_name=sentence.sentence_name if sentence else None,
+            sentence_content=sentence.content,
+            sentence_name=sentence.sentence_name,
             audio_path=practice_record.audio_path,
             audio_duration=practice_record.audio_duration,
             created_at=practice_record.created_at,
@@ -304,7 +309,8 @@ async def list_practice_feedbacks(
     count_statement = (
         select(func.count(PracticeFeedback.feedback_id))
         .join(PracticeRecord, PracticeFeedback.practice_record_id == PracticeRecord.practice_record_id)
-        .where(PracticeRecord.user_id == user_id)
+        .join(PracticeSession, PracticeRecord.practice_session_id == PracticeSession.practice_session_id)
+        .where(PracticeSession.user_id == user_id)
     )
     total = session.exec(count_statement).one()
     
@@ -312,8 +318,9 @@ async def list_practice_feedbacks(
     statement = (
         select(PracticeFeedback, User)
         .join(PracticeRecord, PracticeFeedback.practice_record_id == PracticeRecord.practice_record_id)
+        .join(PracticeSession, PracticeRecord.practice_session_id == PracticeSession.practice_session_id)
         .join(User, PracticeFeedback.therapist_id == User.user_id)
-        .where(PracticeRecord.user_id == user_id)
+        .where(PracticeSession.user_id == user_id)
         .order_by(desc(PracticeFeedback.created_at))
         .offset(skip)
         .limit(limit)
@@ -379,7 +386,7 @@ async def delete_practice_feedback(
     # 更新對應的練習記錄狀態
     practice_record = session.get(PracticeRecord, feedback.practice_record_id)
     if practice_record:
-        practice_record.practice_status = PracticeStatus.COMPLETED
+        practice_record.record_status = PracticeRecordStatus.RECORDED
         practice_record.updated_at = datetime.now()
         session.add(practice_record)
     

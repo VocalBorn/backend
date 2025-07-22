@@ -32,7 +32,7 @@ from src.practice.services.feedback_service import (
 
 router = APIRouter(
     prefix='/practice/therapist',
-    tags=['practice-therapist'],
+    tags=['practice-therapist']
 )
 
 # ==================== 治療師分析相關端點 ====================
