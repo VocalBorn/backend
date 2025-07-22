@@ -23,10 +23,13 @@ from src.auth.services.jwt_service import (
 class TestJwtService:
     """JWT Service 測試類別"""
     
-    @pytest.fixture
-    def mock_secret_key(self):
-        """Mock SECRET_KEY"""
-        return "test_secret_key_for_testing_purposes"
+    @pytest.fixture(autouse=True)
+    def patch_secret_key(self, monkeypatch):
+        """Automatically patch SECRET_KEY for all tests in this class."""
+        monkeypatch.setattr(
+            'src.auth.services.jwt_service.SECRET_KEY',
+            'a_super_secret_key_for_testing'
+        )
 
     def test_create_access_token_with_custom_expiry(self):
         """測試建立 Token 使用自定義過期時間"""
@@ -68,7 +71,7 @@ class TestJwtService:
             token = create_access_token(test_data)
             
             # Assert
-            decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM], options={"verify_exp": False})
+            decoded = jwt.decode(token, 'a_super_secret_key_for_testing', algorithms=[ALGORITHM], options={"verify_exp": False})
             assert decoded["sub"] == "test@example.com"
             assert decoded["role"] == "user"
             
@@ -225,7 +228,7 @@ class TestJwtService:
         token = create_access_token(test_data, timedelta(hours=1))
         
         # Assert - 確保可以用相同的演算法解碼
-        decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        decoded = jwt.decode(token, 'a_super_secret_key_for_testing', algorithms=[ALGORITHM])
         assert decoded["sub"] == "test@example.com"
 
     def test_multiple_tokens_are_different(self):
@@ -268,7 +271,7 @@ class TestJwtService:
         assert result == "test@example.com"
         
         # 驗證 token 中確實包含額外聲明
-        decoded = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        decoded = jwt.decode(token, 'a_super_secret_key_for_testing', algorithms=[ALGORITHM])
         assert decoded["role"] == "admin"
         assert decoded["permissions"] == ["read", "write"]
         assert decoded["custom_field"] == "custom_value"

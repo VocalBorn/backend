@@ -5,9 +5,8 @@ import uuid
 from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel
 
-if TYPE_CHECKING:
-    from src.practice.models import PracticeRecord, PracticeSession
-    from src.therapist.models import TherapistProfile, TherapistClient
+from src.practice.models import PracticeRecord, PracticeSession
+from src.therapist.models import TherapistProfile, TherapistClient
 
 class UserRole(str, Enum):
     ADMIN = "admin"
