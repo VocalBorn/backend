@@ -5,28 +5,31 @@ import uuid
 
 from src.shared.database.database import get_session
 from src.auth.services.permission_service import (
-    get_current_user,
-    require_therapist,
-    require_client_or_therapist
+    require_therapist
 )
 from src.auth.models import User
 
 from src.practice.schemas import (
-    PracticeFeedbackCreate,
-    PracticeFeedbackUpdate,
-    PracticeFeedbackResponse,
-    PracticeFeedbackListResponse,
-    TherapistPendingPracticeListResponse
+    TherapistPatientsOverviewListResponse,
+    PatientPracticeListResponse,
+    PatientPracticeSessionsResponse,
+    PracticeSessionFeedbackCreate,
+    PracticeSessionFeedbackUpdate,
+    PracticeSessionFeedbackResponse
 )
 
 
 from src.practice.services.feedback_service import (
-    create_practice_feedback,
-    get_practice_feedback,
-    update_practice_feedback,
-    list_therapist_pending_practices,
-    list_practice_feedbacks,
-    delete_practice_feedback
+    delete_practice_feedback,
+    create_session_feedback,
+    get_session_feedbacks,
+    update_session_feedbacks
+)
+
+from src.practice.services.therapist_patient_service import (
+    get_therapist_patients_overview,
+    get_patient_practice_records,
+    get_patient_practice_sessions
 )
 
 
@@ -35,127 +38,61 @@ router = APIRouter(
     tags=['practice-therapist']
 )
 
-# ==================== 治療師分析相關端點 ====================
+# ==================== 治療師患者管理端點 ====================
+
 
 @router.get(
-    "/pending",
-    response_model=TherapistPendingPracticeListResponse,
-    summary="取得待分析練習列表",
+    "/patients/overview",
+    response_model=TherapistPatientsOverviewListResponse,
+    summary="取得患者練習進度概覽",
     description="""
-    取得治療師負責客戶的待分析練習列表。
+    取得所有患者的練習章節與進度概覽。
+    這是一個新增的重點功能，讓治療師可以一次檢視所有患者的練習狀況。
     此端點僅限治療師使用。
     """
 )
-async def get_pending_practices_for_therapist(
+async def get_therapist_patients_overview_route(
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(require_therapist)],
     skip: int = 0,
-    limit: int = 10
+    limit: int = 20,
+    search: str = None
 ):
-    return await list_therapist_pending_practices(
+    return await get_therapist_patients_overview(
         therapist_id=current_user.user_id,
         session=session,
         skip=skip,
-        limit=limit
-    )
-
-
-@router.post(
-    "/feedback/{practice_record_id}",
-    response_model=PracticeFeedbackResponse,
-    summary="提供練習回饋",
-    description="""
-    治療師對練習記錄提供專業分析和回饋。
-    此端點僅限治療師使用。
-    """
-)
-async def create_practice_feedback_route(
-    practice_record_id: uuid.UUID,
-    feedback_data: PracticeFeedbackCreate,
-    session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(require_therapist)]
-):
-    feedback = await create_practice_feedback(
-        practice_record_id, feedback_data, current_user.user_id, session
-    )
-    
-    return PracticeFeedbackResponse(
-        feedback_id=feedback.feedback_id,
-        practice_record_id=feedback.practice_record_id,
-        therapist_id=feedback.therapist_id,
-        content=feedback.content,
-        pronunciation_accuracy=feedback.pronunciation_accuracy,
-        suggestions=feedback.suggestions,
-        created_at=feedback.created_at,
-        updated_at=feedback.updated_at,
-        therapist_name=current_user.name
+        limit=limit,
+        search=search
     )
 
 
 @router.get(
-    "/feedback/{practice_record_id}",
-    response_model=PracticeFeedbackResponse,
-    summary="取得練習回饋",
+    "/patients/{patient_id}/practices",
+    response_model=PatientPracticeSessionsResponse,
+    summary="取得患者練習會話記錄",
     description="""
-    取得特定練習記錄的回饋內容。
-    練習者和治療師都可以查看。
+    取得特定患者的練習會話記錄列表，按會話分組顯示，包含音訊播放功能。
+    支援篩選特定練習會話或只顯示待回饋的語句。
+    此端點僅限治療師使用，且只能查看指派給自己的患者。
     """
 )
-async def get_practice_feedback_route(
-    practice_record_id: uuid.UUID,
+async def get_patient_practices_route(
+    patient_id: uuid.UUID,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(require_client_or_therapist)]
+    current_user: Annotated[User, Depends(require_therapist)],
+    practice_session_id: uuid.UUID = None,
+    pending_feedback_only: bool = False
 ):
-    feedback = await get_practice_feedback(practice_record_id, current_user.user_id, session)
-    
-    # 取得治療師名稱
-    therapist = session.get(User, feedback.therapist_id)
-    therapist_name = therapist.name if therapist else None
-    
-    return PracticeFeedbackResponse(
-        feedback_id=feedback.feedback_id,
-        practice_record_id=feedback.practice_record_id,
-        therapist_id=feedback.therapist_id,
-        content=feedback.content,
-        pronunciation_accuracy=feedback.pronunciation_accuracy,
-        suggestions=feedback.suggestions,
-        created_at=feedback.created_at,
-        updated_at=feedback.updated_at,
-        therapist_name=therapist_name
+    return await get_patient_practice_sessions(
+        patient_id=patient_id,
+        therapist_id=current_user.user_id,
+        session=session,
+        practice_session_id=practice_session_id,
+        pending_feedback_only=pending_feedback_only
     )
 
-
-@router.put(
-    "/feedback/{feedback_id}",
-    response_model=PracticeFeedbackResponse,
-    summary="更新練習回饋",
-    description="""
-    更新練習回饋內容。
-    此端點僅限原治療師使用。
-    """
-)
-async def update_practice_feedback_route(
-    feedback_id: uuid.UUID,
-    update_data: PracticeFeedbackUpdate,
-    session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(require_therapist)]
-):
-    feedback = await update_practice_feedback(
-        feedback_id, update_data, current_user.user_id, session
-    )
-    
-    return PracticeFeedbackResponse(
-        feedback_id=feedback.feedback_id,
-        practice_record_id=feedback.practice_record_id,
-        therapist_id=feedback.therapist_id,
-        content=feedback.content,
-        pronunciation_accuracy=feedback.pronunciation_accuracy,
-        suggestions=feedback.suggestions,
-        created_at=feedback.created_at,
-        updated_at=feedback.updated_at,
-        therapist_name=current_user.name
-    )
-
+# ==================== 治療師分析相關端點 ====================
 
 @router.delete(
     "/feedback/{feedback_id}",
@@ -175,23 +112,76 @@ async def delete_practice_feedback_route(
     return {"message": "回饋刪除成功", "success": success}
 
 
-@router.get(
-    "/feedbacks",
-    response_model=PracticeFeedbackListResponse,
-    summary="取得回饋列表",
+# ==================== 會話回饋相關端點 ====================
+
+@router.post(
+    "/session/{practice_session_id}/feedback",
+    response_model=PracticeSessionFeedbackResponse,
+    summary="建立練習會話回饋",
     description="""
-    取得當前用戶收到的所有練習回饋列表。
+    治療師對整個練習會話提供回饋。
+    針對患者的整體練習表現提供專業分析和建議。
+    此端點僅限治療師使用，且只能對負責患者的練習進行回饋。
     """
 )
-async def list_practice_feedbacks_route(
+async def create_session_feedback_route(
+    practice_session_id: uuid.UUID,
+    feedback_data: PracticeSessionFeedbackCreate,
     session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)],
-    skip: int = 0,
-    limit: int = 10
+    current_user: Annotated[User, Depends(require_therapist)]
 ):
-    return await list_practice_feedbacks(
-        user_id=current_user.user_id,
-        session=session,
-        skip=skip,
-        limit=limit
+    """建立練習會話回饋"""
+    return await create_session_feedback(
+        practice_session_id=practice_session_id,
+        feedback_data=feedback_data,
+        therapist_id=current_user.user_id,
+        session=session
+    )
+
+
+@router.get(
+    "/session/{practice_session_id}/feedback",
+    response_model=PracticeSessionFeedbackResponse,
+    summary="取得練習會話回饋",
+    description="""
+    取得特定練習會話的回饋內容。
+    回傳該會話的整體回饋資訊。
+    此端點僅限治療師使用，且只能查看負責患者的練習回饋。
+    """
+)
+async def get_session_feedbacks_route(
+    practice_session_id: uuid.UUID,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(require_therapist)]
+):
+    """取得練習會話回饋"""
+    return await get_session_feedbacks(
+        practice_session_id=practice_session_id,
+        therapist_id=current_user.user_id,
+        session=session
+    )
+
+
+@router.put(
+    "/session/{practice_session_id}/feedback",
+    response_model=PracticeSessionFeedbackResponse,
+    summary="更新練習會話回饋",
+    description="""
+    更新練習會話的回饋內容。
+    可以修改現有的整體回饋內容。
+    此端點僅限原治療師使用。
+    """
+)
+async def update_session_feedbacks_route(
+    practice_session_id: uuid.UUID,
+    feedback_data: PracticeSessionFeedbackUpdate,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated[User, Depends(require_therapist)]
+):
+    """更新練習會話回饋"""
+    return await update_session_feedbacks(
+        practice_session_id=practice_session_id,
+        feedback_data=feedback_data,
+        therapist_id=current_user.user_id,
+        session=session
     )

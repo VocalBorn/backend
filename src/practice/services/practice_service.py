@@ -10,7 +10,7 @@ from typing import Optional
 from sqlmodel import Session, select, and_, desc, func
 from fastapi import HTTPException, status
 
-from src.course.models import Sentence, Chapter
+from src.course.models import Sentence, Chapter, SpeakerRole
 from src.practice.models import PracticeSession, PracticeRecord, PracticeSessionStatus, PracticeRecordStatus, PracticeFeedback
 from src.practice.schemas import (
     PracticeRecordCreate,
@@ -62,8 +62,13 @@ async def create_practice_session(
     session.commit()
     session.refresh(practice_session)
     
-    # 取得該章節的所有句子
-    sentences_stmt = select(Sentence).where(Sentence.chapter_id == practice_data.chapter_id)
+    # 取得該章節中，發話者為 client 的所有句子
+    sentences_stmt = select(Sentence).where(
+        and_(
+            Sentence.chapter_id == practice_data.chapter_id,
+            Sentence.speaker_role == SpeakerRole.SELF
+        )
+    )
     sentences = session.exec(sentences_stmt).all()
     
     # 為每個句子建立練習記錄
@@ -502,10 +507,11 @@ async def update_practice_audio_info(
     return practice_record
 
 
+
 async def get_practice_session(
     practice_session_id: uuid.UUID,
     user_id: uuid.UUID,
-    session: Session
+    db_session: Session
 ) -> PracticeSession:
     """
     取得練習會話詳情
@@ -521,7 +527,7 @@ async def get_practice_session(
     Raises:
         HTTPException: 當練習會話不存在或無權限時
     """
-    practice_session = session.exec(
+    practice_session = db_session.exec(
         select(PracticeSession).where(
             and_(
                 PracticeSession.practice_session_id == practice_session_id,
@@ -542,7 +548,7 @@ async def get_practice_session(
 async def complete_practice_session(
     practice_session_id: uuid.UUID,
     user_id: uuid.UUID,
-    session: Session
+    db_session: Session
 ) -> PracticeSession:
     """
     完成練習會話
@@ -555,10 +561,15 @@ async def complete_practice_session(
     Returns:
         更新後的練習會話
     """
-    practice_session = await get_practice_session(practice_session_id, user_id, session)
-    
+
+    practice_session = await get_practice_session(
+        practice_session_id=practice_session_id,
+        user_id=user_id,
+        db_session=db_session
+    )
+
     # 檢查是否有未完成的錄音
-    pending_records_count = session.exec(
+    pending_records_count = db_session.exec(
         select(func.count(PracticeRecord.practice_record_id)).where(
             and_(
                 PracticeRecord.practice_session_id == practice_session_id,
@@ -579,11 +590,11 @@ async def complete_practice_session(
         practice_session.total_duration = int(total_duration)
     
     practice_session.updated_at = datetime.now()
-    
-    session.add(practice_session)
-    session.commit()
-    session.refresh(practice_session)
-    
+
+    db_session.add(practice_session)
+    db_session.commit()
+    db_session.refresh(practice_session)
+
     logger.info(f"完成練習會話: {practice_session_id}")
     
     return practice_session

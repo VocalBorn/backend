@@ -43,22 +43,22 @@ router = APIRouter(
 )
 async def create_session(
     practice_data: PracticeSessionCreate,
-    session: Annotated[Session, Depends(get_session)],
+    db_session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
 ) -> PracticeSessionResponse:
     """建立新的練習會話"""
     practice_session = await create_practice_session(
-        practice_data, current_user.user_id, session
+        practice_data, current_user.user_id, db_session
     )
     
     # 取得章節資訊
-    chapter = session.get(Chapter, practice_session.chapter_id)
+    chapter = db_session.get(Chapter, practice_session.chapter_id)
     
     # 統計進度資訊
     total_sentences_stmt = select(func.count(PracticeRecord.practice_record_id)).where(
         PracticeRecord.practice_session_id == practice_session.practice_session_id
     )
-    total_sentences = session.exec(total_sentences_stmt).one()
+    total_sentences = db_session.exec(total_sentences_stmt).one()
     
     completed_sentences_stmt = select(func.count(PracticeRecord.practice_record_id)).where(
         and_(
@@ -66,7 +66,7 @@ async def create_session(
             PracticeRecord.record_status != PracticeRecordStatus.PENDING
         )
     )
-    completed_sentences = session.exec(completed_sentences_stmt).one()
+    completed_sentences = db_session.exec(completed_sentences_stmt).one()
     
     pending_sentences = total_sentences - completed_sentences
     
@@ -96,7 +96,7 @@ async def create_session(
     """
 )
 async def list_sessions(
-    session: Annotated[Session, Depends(get_session)],
+    db_session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
     skip: int = 0,
     limit: int = 10,
@@ -112,7 +112,7 @@ async def list_sessions(
     count_statement = select(func.count(PracticeSession.practice_session_id)).where(
         and_(*conditions)
     )
-    total = session.exec(count_statement).one()
+    total = db_session.exec(count_statement).one()
     
     # 查詢會話列表，包含章節資訊
     statement = (
@@ -124,7 +124,7 @@ async def list_sessions(
         .limit(limit)
     )
     
-    results = session.exec(statement).all()
+    results = db_session.exec(statement).all()
     
     # 轉換為回應格式
     practice_sessions = []
@@ -133,7 +133,7 @@ async def list_sessions(
         total_sentences_stmt = select(func.count(PracticeRecord.practice_record_id)).where(
             PracticeRecord.practice_session_id == practice_session.practice_session_id
         )
-        total_sentences = session.exec(total_sentences_stmt).one()
+        total_sentences = db_session.exec(total_sentences_stmt).one()
         
         completed_sentences_stmt = select(func.count(PracticeRecord.practice_record_id)).where(
             and_(
@@ -141,7 +141,7 @@ async def list_sessions(
                 PracticeRecord.record_status != PracticeRecordStatus.PENDING
             )
         )
-        completed_sentences = session.exec(completed_sentences_stmt).one()
+        completed_sentences = db_session.exec(completed_sentences_stmt).one()
         
         pending_sentences = total_sentences - completed_sentences
         
@@ -176,24 +176,24 @@ async def list_sessions(
     需提供練習會話ID，會回傳練習會話詳情。
     """
 )
-async def get_session(
+async def get_session_router(
     practice_session_id: uuid.UUID,
-    session: Annotated[Session, Depends(get_session)],
+    db_session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
 ):
     """查詢特定練習會話"""
     practice_session = await get_practice_session(
-        practice_session_id, current_user.user_id, session
+        practice_session_id, current_user.user_id, db_session
     )
     
     # 取得章節資訊
-    chapter = session.get(Chapter, practice_session.chapter_id)
+    chapter = db_session.get(Chapter, practice_session.chapter_id)
     
     # 統計進度資訊
     total_sentences_stmt = select(func.count(PracticeRecord.practice_record_id)).where(
         PracticeRecord.practice_session_id == practice_session.practice_session_id
     )
-    total_sentences = session.exec(total_sentences_stmt).one()
+    total_sentences = db_session.exec(total_sentences_stmt).one()
     
     completed_sentences_stmt = select(func.count(PracticeRecord.practice_record_id)).where(
         and_(
@@ -201,7 +201,7 @@ async def get_session(
             PracticeRecord.record_status != PracticeRecordStatus.PENDING
         )
     )
-    completed_sentences = session.exec(completed_sentences_stmt).one()
+    completed_sentences = db_session.exec(completed_sentences_stmt).one()
     
     pending_sentences = total_sentences - completed_sentences
     
@@ -231,12 +231,12 @@ async def get_session(
 )
 async def delete_session(
     practice_session_id: uuid.UUID,
-    session: Annotated[Session, Depends(get_session)],
+    db_session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
 ):
     """刪除練習會話"""
     success = await delete_practice_session(
-        practice_session_id, current_user.user_id, session
+        practice_session_id, current_user.user_id, db_session
     )
     
     return {"message": "練習會話刪除成功", "success": success}
@@ -252,22 +252,24 @@ async def delete_session(
 )
 async def complete_session(
     practice_session_id: uuid.UUID,
-    session: Annotated[Session, Depends(get_session)],
+    db_session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
 ):
     """完成練習會話"""
     practice_session = await complete_practice_session(
-        practice_session_id, current_user.user_id, session
+      practice_session_id=practice_session_id,
+      user_id=current_user.user_id,
+      db_session=db_session
     )
     
     # 取得章節資訊
-    chapter = session.get(Chapter, practice_session.chapter_id)
+    chapter = db_session.get(Chapter, practice_session.chapter_id)
     
     # 統計進度資訊
     total_sentences_stmt = select(func.count(PracticeRecord.practice_record_id)).where(
         PracticeRecord.practice_session_id == practice_session.practice_session_id
     )
-    total_sentences = session.exec(total_sentences_stmt).one()
+    total_sentences = db_session.exec(total_sentences_stmt).one()
     
     completed_sentences_stmt = select(func.count(PracticeRecord.practice_record_id)).where(
         and_(
@@ -275,7 +277,7 @@ async def complete_session(
             PracticeRecord.record_status != PracticeRecordStatus.PENDING
         )
     )
-    completed_sentences = session.exec(completed_sentences_stmt).one()
+    completed_sentences = db_session.exec(completed_sentences_stmt).one()
     
     pending_sentences = total_sentences - completed_sentences
     

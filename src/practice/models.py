@@ -41,6 +41,7 @@ class PracticeSession(SQLModel, table=True):
     user: "User" = Relationship(back_populates="practice_sessions")
     chapter: Chapter = Relationship(back_populates="practice_sessions")
     practice_records: List["PracticeRecord"] = Relationship(back_populates="practice_session")
+    session_feedbacks: List["PracticeSessionFeedback"] = Relationship(back_populates="practice_session")
 
 class PracticeRecord(SQLModel, table=True):
     """練習記錄表 - 代表練習會話中單個句子的錄音記錄"""
@@ -69,8 +70,8 @@ class PracticeRecord(SQLModel, table=True):
     feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
 
 
-
-class PracticeFeedback(SQLModel, table=True):
+# 待刪除、棄用
+class PracticeFeedback(SQLModel, table=True): 
     """練習回饋表"""
     __tablename__ = "practice_feedbacks"
 
@@ -88,4 +89,22 @@ class PracticeFeedback(SQLModel, table=True):
 
     # Relationships
     practice_record: PracticeRecord = Relationship(back_populates="feedback")
+    therapist: "User" = Relationship()
+
+class PracticeSessionFeedback(SQLModel, table=True):
+    """練習會話回饋表"""
+    __tablename__ = "practice_session_feedbacks"
+
+    session_feedback_id: Optional[uuid.UUID] = Field(default_factory=uuid.uuid4, primary_key=True)
+    practice_session_id: uuid.UUID = Field(foreign_key="practice_sessions.practice_session_id")
+    therapist_id: uuid.UUID = Field(foreign_key="users.user_id")
+    
+    # 回饋內容
+    content: str  # 回饋內容
+    
+    created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+    updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
+
+    # Relationships
+    practice_session: PracticeSession = Relationship(back_populates="session_feedbacks")
     therapist: "User" = Relationship()

@@ -5,8 +5,8 @@
 
 import uuid
 import logging
-from datetime import timedelta
-from typing import Optional
+from datetime import datetime, timedelta
+from typing import Optional, Tuple
 from fastapi import UploadFile, HTTPException, status
 from sqlmodel import Session
 
@@ -167,6 +167,40 @@ class PracticeRecordingService:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail=f"刪除練習錄音失敗: {str(e)}"
+            )
+    
+    async def get_presigned_url(
+        self,
+        audio_path: str,
+        expires_minutes: int = 30
+    ) -> Tuple[str, datetime]:
+        """
+        取得音訊檔案的預簽署 URL
+        
+        Args:
+            audio_path: 音訊檔案路徑
+            expires_minutes: URL有效期（分鐘）
+            
+        Returns:
+            包含 URL 和過期時間的 tuple
+        """
+        try:
+            # 生成預簽署URL
+            url = self.storage_service.get_presigned_url(
+                audio_path,
+                expires_in=timedelta(minutes=expires_minutes)
+            )
+            
+            # 計算過期時間
+            expires_at = datetime.now() + timedelta(minutes=expires_minutes)
+            
+            return url, expires_at
+            
+        except StorageServiceError as e:
+            logger.error(f"取得音訊預簽署URL失敗: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"取得音訊預簽署URL失敗: {str(e)}"
             )
 
 
