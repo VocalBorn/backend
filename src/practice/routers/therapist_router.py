@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session
 import uuid
 
@@ -58,13 +58,30 @@ async def get_therapist_patients_overview_route(
     limit: int = 20,
     search: str = None
 ):
-    return await get_therapist_patients_overview(
-        therapist_id=current_user.user_id,
-        session=session,
-        skip=skip,
-        limit=limit,
-        search=search
-    )
+    try:
+        return await get_therapist_patients_overview(
+            therapist_id=current_user.user_id,
+            session=session,
+            skip=skip,
+            limit=limit,
+            search=search
+        )
+    except ValueError as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"治療師患者概覽查詢失敗: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="查詢患者概覽時發生錯誤"
+        )
+    except Exception as e:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"治療師患者概覽查詢發生未預期錯誤: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="系統發生未預期錯誤"
+        )
 
 
 @router.get(

@@ -9,6 +9,7 @@ from typing import List, Optional, Dict
 from uuid import UUID
 from sqlmodel import Session, select, and_, or_, func, case
 from sqlalchemy.orm import selectinload
+from fastapi import HTTPException, status
 
 from src.auth.models import User, UserRole
 from src.course.models import Chapter, Sentence
@@ -215,7 +216,10 @@ async def get_patient_practice_sessions(
     ).first()
     
     if not therapist_client_check:
-        raise ValueError("治療師無權查看此患者的練習記錄")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="治療師無權查看此患者的練習記錄"
+        )
     
     # 取得患者資訊
     patient = session.exec(
@@ -223,7 +227,10 @@ async def get_patient_practice_sessions(
     ).first()
     
     if not patient:
-        raise ValueError("找不到指定的患者")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="找不到指定的患者"
+        )
     
     # 建立練習會話查詢條件
     session_conditions = [
@@ -400,7 +407,10 @@ async def get_patient_practice_records(
     ).first()
     
     if not therapist_client_check:
-        raise ValueError("治療師無權查看此患者的練習記錄")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="治療師無權查看此患者的練習記錄"
+        )
     
     # 取得患者資訊
     patient = session.exec(
@@ -408,7 +418,10 @@ async def get_patient_practice_records(
     ).first()
     
     if not patient:
-        raise ValueError("找不到指定的患者")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="找不到指定的患者"
+        )
     
     # 建立查詢
     base_query = (
@@ -491,7 +504,7 @@ async def get_patient_practice_records(
                 practice_record_id=record.practice_record_id,
                 practice_session_id=record.practice_session_id,
                 chapter_id=chapter.chapter_id if chapter else record.practice_session.chapter_id,
-                chapter_name=chapter.chapter_name if chapter else "",
+                chapter_name=chapter.chapter_name if chapter else "未知章節",
                 sentence_id=record.sentence_id,
                 sentence_content=record.sentence.content,
                 sentence_name=record.sentence.sentence_name,

@@ -568,6 +568,13 @@ async def complete_practice_session(
         db_session=db_session
     )
 
+    # 檢查會話是否已經完成
+    if practice_session.session_status == PracticeSessionStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="練習會話已完成"
+        )
+
     # 檢查是否有未完成的錄音
     pending_records_count = db_session.exec(
         select(func.count(PracticeRecord.practice_record_id)).where(
@@ -579,7 +586,10 @@ async def complete_practice_session(
     ).one()
     
     if pending_records_count > 0:
-        logger.warning(f"練習會話 {practice_session_id} 仍有 {pending_records_count} 個待錄音的句子")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="練習會話有未完成的記錄"
+        )
     
     practice_session.session_status = PracticeSessionStatus.COMPLETED
     practice_session.end_time = datetime.now()
@@ -685,7 +695,19 @@ async def delete_practice_session(
     # 驗證練習會話存在且屬於當前用戶
     practice_session = await get_practice_session(practice_session_id, user_id, session)
     
-    # 刪除相關的回饋記錄
+    # 檢查是否有練習記錄，如果有則不允許刪除
+    records_stmt = select(PracticeRecord).where(
+        PracticeRecord.practice_session_id == practice_session_id
+    )
+    records = session.exec(records_stmt).all()
+    
+    if records:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="練習會話包含記錄，無法刪除"
+        )
+    
+    # 刪除相關的回饋記錄（如果有的話）
     feedback_stmt = (
         select(PracticeFeedback)
         .join(PracticeRecord, PracticeFeedback.practice_record_id == PracticeRecord.practice_record_id)
@@ -694,14 +716,6 @@ async def delete_practice_session(
     feedbacks = session.exec(feedback_stmt).all()
     for feedback in feedbacks:
         session.delete(feedback)
-    
-    # 刪除練習記錄
-    records_stmt = select(PracticeRecord).where(
-        PracticeRecord.practice_session_id == practice_session_id
-    )
-    records = session.exec(records_stmt).all()
-    for record in records:
-        session.delete(record)
     
     # 刪除練習會話
     session.delete(practice_session)

@@ -192,6 +192,7 @@ class TestSessionFeedbackService:
         assert exc_info.value.status_code == 400
         assert "已有回饋" in exc_info.value.detail
 
+    @pytest.mark.asyncio
     async def test_get_session_feedbacks_success(
         self,
         mock_session,
@@ -238,6 +239,7 @@ class TestSessionFeedbackService:
         assert result.content == existing_feedback.content
         assert result.therapist_name == sample_therapist.name
 
+    @pytest.mark.asyncio
     async def test_update_session_feedbacks_success(
         self,
         mock_session,
@@ -293,6 +295,7 @@ class TestSessionFeedbackService:
         mock_session.commit.assert_called_once()
         mock_session.refresh.assert_called_once()
 
+    @pytest.mark.asyncio
     async def test_unauthorized_access(
         self,
         mock_session,
@@ -322,3 +325,211 @@ class TestSessionFeedbackService:
         
         assert exc_info.value.status_code == 403
         assert "無權限" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_create_session_feedback_session_not_found(
+        self,
+        mock_session
+    ):
+        """測試建立回饋時會話不存在"""
+        from fastapi import HTTPException
+        
+        # 設定
+        practice_session_id = uuid.uuid4()
+        therapist_id = uuid.uuid4()
+        feedback_data = PracticeSessionFeedbackCreate(
+            content="測試回饋內容"
+        )
+        
+        # 模擬會話不存在
+        mock_session.get.return_value = None
+        
+        # 執行並驗證異常
+        with pytest.raises(HTTPException) as exc_info:
+            await create_session_feedback(
+                practice_session_id=practice_session_id,
+                feedback_data=feedback_data,
+                therapist_id=therapist_id,
+                session=mock_session
+            )
+        
+        assert exc_info.value.status_code == 404
+        assert "會話不存在" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_get_session_feedbacks_no_feedback(
+        self,
+        mock_session,
+        sample_practice_session,
+        sample_therapist_client
+    ):
+        """測試取得不存在的會話回饋"""
+        from fastapi import HTTPException
+        
+        # 模擬資料庫查詢
+        mock_session.get.return_value = sample_practice_session
+        mock_session.exec.side_effect = [
+            MagicMock(first=MagicMock(return_value=sample_therapist_client)),  # 檢查治療師權限
+            MagicMock(first=MagicMock(return_value=None))  # 沒有回饋
+        ]
+        
+        # 執行並驗證異常
+        with pytest.raises(HTTPException) as exc_info:
+            await get_session_feedbacks(
+                practice_session_id=sample_practice_session.practice_session_id,
+                therapist_id=sample_therapist_client.therapist_id,
+                session=mock_session
+            )
+        
+        assert exc_info.value.status_code == 404
+        assert "該練習會話沒有回饋" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_update_session_feedbacks_feedback_not_found(
+        self,
+        mock_session,
+        sample_practice_session,
+        sample_therapist_client
+    ):
+        """測試更新不存在的回饋"""
+        from fastapi import HTTPException
+        
+        # 設定
+        update_data = PracticeSessionFeedbackUpdate(
+            content="更新後的回饋內容"
+        )
+        
+        # 模擬資料庫查詢
+        mock_session.get.return_value = sample_practice_session
+        mock_session.exec.side_effect = [
+            MagicMock(first=MagicMock(return_value=sample_therapist_client)),  # 檢查治療師權限
+            MagicMock(first=MagicMock(return_value=None))  # 沒有回饋
+        ]
+        
+        # 執行並驗證異常
+        with pytest.raises(HTTPException) as exc_info:
+            await update_session_feedbacks(
+                practice_session_id=sample_practice_session.practice_session_id,
+                feedback_data=update_data,
+                therapist_id=sample_therapist_client.therapist_id,
+                session=mock_session
+            )
+        
+        assert exc_info.value.status_code == 404
+        assert "該練習會話沒有回饋" in exc_info.value.detail
+
+    @pytest.mark.asyncio
+    async def test_create_session_feedback_database_error(
+        self,
+        mock_session,
+        sample_practice_session,
+        sample_therapist,
+        sample_therapist_client
+    ):
+        """測試建立回饋時資料庫錯誤"""
+        # 設定
+        feedback_data = PracticeSessionFeedbackCreate(
+            content="測試回饋內容"
+        )
+        
+        # 模擬資料庫查詢成功但提交失敗
+        mock_session.get.side_effect = [sample_practice_session, sample_therapist]
+        mock_session.exec.side_effect = [
+            MagicMock(first=MagicMock(return_value=sample_therapist_client)),  # 權限檢查
+            MagicMock(first=MagicMock(return_value=None))  # 檢查現有回饋，沒有
+        ]
+        mock_session.commit.side_effect = Exception("Database commit error")
+        
+        # 執行並驗證異常
+        with pytest.raises(Exception) as exc_info:
+            await create_session_feedback(
+                practice_session_id=sample_practice_session.practice_session_id,
+                feedback_data=feedback_data,
+                therapist_id=sample_therapist.user_id,
+                session=mock_session
+            )
+        
+        assert "Database commit error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_create_session_feedback_empty_content(
+        self,
+        mock_session,
+        sample_practice_session,
+        sample_therapist,
+        sample_patient,
+        sample_chapter,
+        sample_therapist_client
+    ):
+        """測試建立空內容回饋"""
+        # 設定
+        feedback_data = PracticeSessionFeedbackCreate(
+            content=""  # 空內容
+        )
+        
+        # 模擬資料庫查詢
+        mock_session.get.side_effect = [
+            sample_practice_session,
+            sample_therapist,
+            sample_patient,
+            sample_chapter
+        ]
+        
+        mock_session.exec.side_effect = [
+            MagicMock(first=MagicMock(return_value=sample_therapist_client)),
+            MagicMock(first=MagicMock(return_value=None))
+        ]
+        
+        # 執行 - 應該成功（如果業務邏輯允許空內容）
+        result = await create_session_feedback(
+            practice_session_id=sample_practice_session.practice_session_id,
+            feedback_data=feedback_data,
+            therapist_id=sample_therapist.user_id,
+            session=mock_session
+        )
+        
+        # 驗證
+        assert isinstance(result, PracticeSessionFeedbackResponse)
+        assert result.content == ""
+
+    @pytest.mark.asyncio
+    async def test_create_session_feedback_very_long_content(
+        self,
+        mock_session,
+        sample_practice_session,
+        sample_therapist,
+        sample_patient,
+        sample_chapter,
+        sample_therapist_client
+    ):
+        """測試建立超長內容回饋"""
+        # 設定
+        long_content = "測試" * 1000  # 超長內容
+        feedback_data = PracticeSessionFeedbackCreate(
+            content=long_content
+        )
+        
+        # 模擬資料庫查詢
+        mock_session.get.side_effect = [
+            sample_practice_session,
+            sample_therapist,
+            sample_patient,
+            sample_chapter
+        ]
+        
+        mock_session.exec.side_effect = [
+            MagicMock(first=MagicMock(return_value=sample_therapist_client)),
+            MagicMock(first=MagicMock(return_value=None))
+        ]
+        
+        # 執行
+        result = await create_session_feedback(
+            practice_session_id=sample_practice_session.practice_session_id,
+            feedback_data=feedback_data,
+            therapist_id=sample_therapist.user_id,
+            session=mock_session
+        )
+        
+        # 驗證
+        assert isinstance(result, PracticeSessionFeedbackResponse)
+        assert result.content == long_content
