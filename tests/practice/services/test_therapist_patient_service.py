@@ -25,6 +25,7 @@ def mock_audio_service():
         mock.return_value.get_presigned_url = AsyncMock(return_value=("http://some.url", "some_date"))
         yield mock
 
+# 測試治療師獲取患者概覽成功的情況
 @pytest.mark.asyncio
 async def test_get_therapist_patients_overview_success(mock_session):
     therapist_id = uuid.uuid4()
@@ -51,6 +52,7 @@ async def test_get_therapist_patients_overview_success(mock_session):
     assert len(result.patients_overview) == 1
     assert result.patients_overview[0].patient_id == patient_id
 
+# 測試治療師獲取患者練習會話成功的情況
 @pytest.mark.asyncio
 async def test_get_patient_practice_sessions_success(mock_session, mock_audio_service):
     patient_id = uuid.uuid4()
@@ -75,6 +77,7 @@ async def test_get_patient_practice_sessions_success(mock_session, mock_audio_se
     assert len(result.practice_sessions) == 1
     assert result.practice_sessions[0].practice_session_id == session_id
 
+# 測試治療師獲取患者練習記錄成功的情況
 @pytest.mark.asyncio
 async def test_get_patient_practice_records_success(mock_session, mock_audio_service):
     patient_id = uuid.uuid4()
@@ -122,6 +125,7 @@ async def test_get_patient_practice_records_success(mock_session, mock_audio_ser
     assert result.total == 1
     assert len(result.practice_records) == 1
 
+# 測試治療師沒有患者時的情況
 @pytest.mark.asyncio
 async def test_get_therapist_patients_overview_no_patients(mock_session):
     therapist_id = uuid.uuid4()
@@ -134,6 +138,7 @@ async def test_get_therapist_patients_overview_no_patients(mock_session):
     assert result.total == 0
     assert len(result.patients_overview) == 0
 
+# 測試治療師無權限查看患者練習會話的情況
 @pytest.mark.asyncio
 async def test_get_patient_practice_sessions_unauthorized(mock_session, mock_audio_service):
     patient_id = uuid.uuid4()
@@ -146,6 +151,7 @@ async def test_get_patient_practice_sessions_unauthorized(mock_session, mock_aud
     
     assert exc_info.value.status_code == 403
 
+# 測試治療師與患者關係非活躍狀態的情況
 @pytest.mark.asyncio
 async def test_get_patient_practice_sessions_inactive_relationship(mock_session, mock_audio_service):
     patient_id = uuid.uuid4()
@@ -160,6 +166,7 @@ async def test_get_patient_practice_sessions_inactive_relationship(mock_session,
     assert exc_info.value.status_code == 403
     assert "治療師無權查看此患者的練習記錄" in exc_info.value.detail
 
+# 測試患者不存在的情況
 @pytest.mark.asyncio
 async def test_get_patient_practice_sessions_patient_not_found(mock_session, mock_audio_service):
     patient_id = uuid.uuid4()
@@ -177,6 +184,7 @@ async def test_get_patient_practice_sessions_patient_not_found(mock_session, moc
     assert exc_info.value.status_code == 404
     assert "找不到指定的患者" in exc_info.value.detail
 
+# 測試患者沒有練習會話的情況
 @pytest.mark.asyncio
 async def test_get_patient_practice_sessions_no_sessions(mock_session, mock_audio_service):
     patient_id = uuid.uuid4()
@@ -194,6 +202,7 @@ async def test_get_patient_practice_sessions_no_sessions(mock_session, mock_audi
     assert result.total_sessions == 0
     assert len(result.practice_sessions) == 0
 
+# 測試治療師無權限查看患者練習記錄的情況
 @pytest.mark.asyncio
 async def test_get_patient_practice_records_unauthorized(mock_session, mock_audio_service):
     patient_id = uuid.uuid4()
@@ -207,6 +216,7 @@ async def test_get_patient_practice_records_unauthorized(mock_session, mock_audi
     assert exc_info.value.status_code == 403
     assert "治療師無權查看此患者的練習記錄" in exc_info.value.detail
 
+# 測試患者沒有練習記錄的情況
 @pytest.mark.asyncio
 async def test_get_patient_practice_records_no_records(mock_session, mock_audio_service):
     patient_id = uuid.uuid4()
@@ -224,29 +234,50 @@ async def test_get_patient_practice_records_no_records(mock_session, mock_audio_
     assert result.total == 0
     assert len(result.practice_records) == 0
 
+# 測試音頻服務錯誤時的處理情況
 @pytest.mark.asyncio
 async def test_get_patient_practice_records_audio_service_error(mock_session):
     patient_id = uuid.uuid4()
     therapist_id = uuid.uuid4()
+    chapter_id = uuid.uuid4()
+    session_id = uuid.uuid4()
 
     mock_therapist_client = TherapistClient(therapist_id=therapist_id, client_id=patient_id, is_active=True)
     mock_patient = User(user_id=patient_id, name="Test Patient")
     
     # 建立實際的Mock對象而非MagicMock，避免Pydantic驗證錯誤
-    from src.practice.models import PracticeRecord, PracticeRecordStatus
+    from src.practice.models import PracticeRecord, PracticeRecordStatus, PracticeSession, PracticeSessionStatus
     from src.course.models import Sentence, Chapter
     
-    mock_chapter = Chapter(chapter_id=uuid.uuid4(), title="Test Chapter")
-    mock_sentence = Sentence(sentence_id=uuid.uuid4(), content="Hello", sentence_name="Greeting")
+    mock_chapter = Chapter(
+        chapter_id=chapter_id, 
+        situation_id=uuid.uuid4(),
+        chapter_name="Test Chapter",
+        sequence_number=1
+    )
+    mock_sentence = Sentence(
+        sentence_id=uuid.uuid4(), 
+        chapter_id=chapter_id,
+        sentence_name="Greeting",
+        speaker_role="self",
+        content="Hello"
+    )
+    mock_practice_session = PracticeSession(
+        practice_session_id=session_id,
+        user_id=patient_id,
+        chapter_id=chapter_id,
+        session_status=PracticeSessionStatus.COMPLETED
+    )
     mock_record = PracticeRecord(
         practice_record_id=uuid.uuid4(),
-        practice_session_id=uuid.uuid4(), 
+        practice_session_id=session_id, 
         sentence_id=mock_sentence.sentence_id,
         record_status=PracticeRecordStatus.RECORDED,
         audio_path="some/path",
         recorded_at=datetime.now()
     )
     mock_record.sentence = mock_sentence
+    mock_record.practice_session = mock_practice_session
 
     mock_session.exec.return_value.first.side_effect = [mock_therapist_client, mock_patient, mock_chapter]
     mock_session.exec.return_value.one.return_value = 1
@@ -260,10 +291,11 @@ async def test_get_patient_practice_records_audio_service_error(mock_session):
         result = await get_patient_practice_records(patient_id, therapist_id, mock_session)
         
         assert result is not None
-        assert result.total_records == 1
+        assert result.total == 1
         # 音頻URL應該為None因為服務錯誤被優雅處理
         assert result.practice_records[0].audio_stream_url is None
 
+# 測試資料庫錯誤時的處理情況
 @pytest.mark.asyncio
 async def test_get_therapist_patients_overview_database_error(mock_session):
     therapist_id = uuid.uuid4()
