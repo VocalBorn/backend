@@ -10,9 +10,6 @@
 
 ### 🚀 Deployment（部署）
 包含專案部署相關的文件和指南。
-- `celery/` - Celery 任務系統相關的部署文件
-  - `CELERY_ADMIN_DEPLOYMENT.md` - Celery 管理系統部署指南
-  - `CELERY_ADMIN_USAGE_EXAMPLES.md` - Celery 管理系統使用範例
 
 ### 💻 Development（開發）
 包含開發過程中產生的文件，如程式碼審查、計畫和任務記錄。

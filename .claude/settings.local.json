@@ -10,7 +10,10 @@
       "Bash(find:*)",
       "Bash(ls:*)",
       "Bash(python3:*)",
-      "Bash(uv run:*)"
+      "Bash(uv run:*)",
+      "Bash(curl:*)",
+      "Bash(cat:*)",
+      "Bash(mv:*)"
     ],
     "deny": []
   }
