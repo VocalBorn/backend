@@ -1,7 +1,7 @@
 import logging
-import os
 from fastapi import UploadFile
 from .storage_service import StorageService, StorageServiceError
+from src.shared.config.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +80,13 @@ class AudioStorageService(StorageService):
 # 工廠函數
 def get_practice_audio_storage_service() -> AudioStorageService:
     """取得練習錄音儲存服務"""
-    bucket_name = os.getenv('PRACTICE_AUDIO_BUCKET_NAME', 'practice-recordings')
+    settings = get_settings()
+    bucket_name = settings.PRACTICE_AUDIO_BUCKET_NAME
     return AudioStorageService(bucket_name)
 
 
 def get_course_audio_storage_service() -> AudioStorageService:
     """取得課程音訊儲存服務"""
-    bucket_name = os.getenv('COURSE_AUDIO_BUCKET_NAME', 'course-audio')
+    settings = get_settings()
+    bucket_name = settings.COURSE_AUDIO_BUCKET_NAME
     return AudioStorageService(bucket_name)

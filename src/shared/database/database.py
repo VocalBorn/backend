@@ -1,16 +1,10 @@
-# From .env file
-import os
-
 from sqlmodel import SQLModel, Session, create_engine
+from src.shared.config.config import get_settings
 
-DB_ADDRESS = os.getenv("DB_ADDRESS")
-DB_PORT = os.getenv("DB_PORT")
-DB_USER = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME = os.getenv("DB_NAME")
+settings = get_settings()
 
 engine = create_engine(
-  f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_ADDRESS}:{DB_PORT}/{DB_NAME}",
+  settings.database_url,
   connect_args={"connect_timeout": 10},
 )
 

@@ -1,11 +1,11 @@
 from fastapi import HTTPException
 from pydantic import EmailStr
 from typing import Optional, Dict, Any
-import os
 import asyncio
 import httpx
 import logging
 from httpx import ConnectError, ReadTimeout
+from src.shared.config.config import get_settings
 
 class EmailTemplates:
     """電子郵件範本管理類"""
@@ -229,8 +229,9 @@ class EmailService:
 
     def __init__(self):
         """初始化電子郵件服務"""
-        self.service_host = os.getenv("EMAIL_SERVICE_HOST")
-        self.service_port = os.getenv("EMAIL_SERVICE_PORT")
+        settings = get_settings()
+        self.service_host = settings.EMAIL_SERVICE_HOST
+        self.service_port = settings.EMAIL_SERVICE_PORT
         if not self.service_host or not self.service_port:
             raise ValueError("未設定郵件服務位址或端口")
         self.base_url = f"http://{self.service_host}:{self.service_port}"
@@ -333,7 +334,7 @@ class EmailService:
         self,
         to_email: EmailStr,
         token: str,
-        base_url: str = os.getenv("BASE_URL", "http://localhost:8000")
+        base_url: str = None
     ) -> None:
         """
         發送電子郵件驗證信
@@ -343,6 +344,10 @@ class EmailService:
             token: 驗證 token
             base_url: 網站基礎 URL
         """
+        if base_url is None:
+            settings = get_settings()
+            base_url = settings.BASE_URL or "http://localhost:8000"
+        
         # verification_url = f"{base_url}/user/verify-email/{token}"
         verification_url = f"{base_url}/verify_email.html?token={token}"
         html_content = EmailTemplates.verification_email(verification_url)
@@ -357,7 +362,7 @@ class EmailService:
         self,
         to_email: EmailStr,
         token: str,
-        base_url: str = os.getenv("BASE_URL", "http://localhost:8000")
+        base_url: str = None
     ) -> None:
         """
         發送重設密碼郵件
@@ -367,6 +372,10 @@ class EmailService:
             token: 重設密碼用的 token
             base_url: 網站基礎 URL
         """
+        if base_url is None:
+            settings = get_settings()
+            base_url = settings.BASE_URL or "http://localhost:8000"
+        
         reset_url = f"{base_url}/user/reset-password/{token}"
         html_content = EmailTemplates.reset_password_email(reset_url)
         

@@ -1,12 +1,12 @@
 import random
 import string
-import os
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 from uuid import UUID
 
 from fastapi import HTTPException
 from sqlmodel import Session, select
+from src.shared.config.config import get_settings
 
 from src.auth.models import User, UserRole
 from src.pairing.models import PairingToken
@@ -50,7 +50,7 @@ def generate_pairing_token(
     session: Session,
     therapist_id: UUID,
     token_data: PairingTokenCreate,
-    base_url: str = os.getenv("BASE_URL", "http://localhost:8000")
+    base_url: str = None
 ) -> PairingTokenWithQR:
     """生成配對token"""
 
@@ -86,6 +86,11 @@ def generate_pairing_token(
     session.add(token)
     session.commit()
     session.refresh(token)
+
+    # 取得 base_url
+    if base_url is None:
+        settings = get_settings()
+        base_url = settings.BASE_URL or "http://localhost:8000"
 
     # 生成QR碼資料
     qr_data = f"{base_url}/pair/{token_code}"

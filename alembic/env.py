@@ -13,6 +13,10 @@ from sqlmodel import create_engine, SQLModel
 # 載入環境變數
 load_dotenv()
 
+# 匯入配置系統
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from src.shared.config.config import get_settings
+
 # 添加專案根目錄到 Python 路徑
 current_dir = Path(__file__).parent
 project_root = current_dir.parent
@@ -61,13 +65,9 @@ if config.config_file_name is not None:
 
 
 def get_url():
-    """Get the database URL from environment variables."""
-    DB_ADDRESS = os.getenv("DB_ADDRESS")
-    DB_PORT: str = os.getenv("DB_PORT")
-    DB_USER = os.getenv("DB_USER")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
-    DB_NAME = os.getenv("DB_NAME")
-    result = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_ADDRESS}:{DB_PORT}/{DB_NAME}"
+    """Get the database URL from configuration system."""
+    settings = get_settings()
+    result = settings.database_url
     print(f"Using database URL: {result}")
     return result
 

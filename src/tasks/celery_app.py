@@ -10,14 +10,14 @@ VocalBorn Celery 應用配置模組
 """
 
 import logging
-import os
 from typing import Dict, Any, Optional, Union
 from celery import Celery
 from celery.signals import setup_logging, worker_ready, worker_shutdown
+from src.shared.config.config import get_settings
 
 # 載入環境變數
-from ..shared.config.config import load_dotenv
-load_dotenv()
+from dotenv import load_dotenv
+load_dotenv()  # take environment variables from .env.
 
 # 設定日誌記錄器
 logger = logging.getLogger(__name__)
@@ -28,15 +28,16 @@ class CeleryConfig:
     
     def __init__(self):
         """初始化 Celery 配置"""
-        self.redis_host = os.getenv("REDIS_HOST", "localhost")
-        self.redis_port = int(os.getenv("REDIS_PORT", "6379"))
-        self.redis_db_broker = int(os.getenv("REDIS_DB_BROKER", "0"))
-        self.redis_db_backend = int(os.getenv("REDIS_DB_BACKEND", "1"))
-        self.redis_password = os.getenv("REDIS_PASSWORD")
+        settings = get_settings()
+        self.redis_host = settings.REDIS_HOST
+        self.redis_port = settings.REDIS_PORT
+        self.redis_db_broker = settings.REDIS_DB_BROKER
+        self.redis_db_backend = settings.REDIS_DB_BACKEND
+        self.redis_password = settings.REDIS_PASSWORD
         
-        # 建構 Redis URL
-        self.broker_url = self._build_redis_url(self.redis_db_broker)
-        self.result_backend = self._build_redis_url(self.redis_db_backend)
+        # 使用 settings 中的屬性直接獲取 URL
+        self.broker_url = settings.redis_broker_url
+        self.result_backend = settings.redis_backend_url
     
     def _build_redis_url(self, db: int) -> str:
         """建構 Redis 連線 URL
@@ -166,7 +167,8 @@ def setup_celery_logging(loglevel: Optional[Union[str, int]] = None, logfile: Op
     """
     # 處理不同類型的 loglevel 輸入
     if loglevel is None:
-        log_level_str = os.getenv("CELERY_LOG_LEVEL", "INFO")
+        settings = get_settings()
+        log_level_str = settings.CELERY_LOG_LEVEL
         log_level_num = getattr(logging, log_level_str.upper())
     elif isinstance(loglevel, str):
         log_level_num = getattr(logging, loglevel.upper())

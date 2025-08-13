@@ -1,10 +1,10 @@
 import logging
-import os
 from datetime import timedelta
 from typing import Optional
 from fastapi import UploadFile
 from minio import Minio
 from minio.error import S3Error
+from src.shared.config.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -37,11 +37,12 @@ class StorageService:
     def _initialize_client(self):
         """初始化 MinIO 客戶端"""
         try:
-            # 從環境變數獲取 MinIO 設定
-            endpoint = os.getenv('MINIO_ENDPOINT')
-            access_key = os.getenv('MINIO_ACCESS_KEY')
-            secret_key = os.getenv('MINIO_SECRET_KEY')
-            secure = os.getenv('MINIO_SECURE', 'false').lower() == 'true'
+            # 從配置系統獲取 MinIO 設定
+            settings = get_settings()
+            endpoint = settings.MINIO_ENDPOINT
+            access_key = settings.MINIO_ACCESS_KEY
+            secret_key = settings.MINIO_SECRET_KEY
+            secure = settings.MINIO_SECURE
             
             if not endpoint:
                 raise StorageServiceError("MINIO_ENDPOINT 環境變數未設定")
@@ -186,5 +187,6 @@ def create_storage_service(bucket_name: str) -> StorageService:
 # 延遲初始化的儲存服務實例
 def get_verification_storage_service() -> StorageService:
     """取得驗證文件儲存服務實例"""
-    bucket_name = os.getenv('MINIO_BUCKET_NAME', 'verification-documents')
+    settings = get_settings()
+    bucket_name = settings.MINIO_BUCKET_NAME or 'verification-documents'
     return create_storage_service(bucket_name)

@@ -4,11 +4,11 @@
 """
 
 import logging
-import os
 from enum import Enum
 from typing import Dict, Type
 from .storage_service import StorageService
 from .audio_storage_service import AudioStorageService
+from src.shared.config.config import get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -93,13 +93,18 @@ class StorageServiceFactory:
     @classmethod
     def _get_bucket_name(cls, purpose: StoragePurpose) -> str:
         """取得桶名稱"""
-        config_key = cls._bucket_config_map.get(purpose)
-        if not config_key:
-            raise ValueError(f"未配置的儲存用途: {purpose}")
+        settings = get_settings()
         
-        # 從環境變數取得桶名稱，如果沒有則使用預設值
-        bucket_name = os.getenv(config_key, cls._default_bucket_names[purpose])
-        return bucket_name
+        # 根據用途直接從配置系統取得桶名稱
+        if purpose == StoragePurpose.VERIFICATION:
+            return settings.MINIO_BUCKET_NAME or cls._default_bucket_names[purpose]
+        elif purpose == StoragePurpose.PRACTICE_RECORDING:
+            return settings.PRACTICE_AUDIO_BUCKET_NAME
+        elif purpose == StoragePurpose.COURSE_AUDIO:
+            return settings.COURSE_AUDIO_BUCKET_NAME
+        else:
+            # 對於其他用途，使用預設值
+            return cls._default_bucket_names.get(purpose, 'default-bucket')
 
 
 # 便利函數
