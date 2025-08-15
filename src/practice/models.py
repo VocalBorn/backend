@@ -5,6 +5,7 @@ from sqlmodel import Field, Relationship, SQLModel
 import uuid
 
 from src.course.models import Chapter, Sentence
+from src.ai_analysis.models import AIAnalysisTask
 
 class PracticeSessionStatus(str, Enum):
     IN_PROGRESS = "in_progress"    # 進行中
@@ -29,6 +30,7 @@ class PracticeSession(SQLModel, table=True):
     chapter_id: uuid.UUID = Field(foreign_key="chapters.chapter_id")
     session_status: PracticeSessionStatus = Field(default=PracticeSessionStatus.IN_PROGRESS)
     
+    
     # 會話時間資訊
     begin_time: Optional[datetime.datetime] = None  # 練習開始時間
     end_time: Optional[datetime.datetime] = None    # 練習結束時間
@@ -52,6 +54,10 @@ class PracticeRecord(SQLModel, table=True):
     sentence_id: uuid.UUID = Field(foreign_key="sentences.sentence_id")  # 必須指定句子
     record_status: PracticeRecordStatus = Field(default=PracticeRecordStatus.PENDING)
     
+    # AI 任務追蹤欄位
+    ai_task_id: Optional[uuid.UUID] = Field(default=None, foreign_key="ai_analysis_tasks.task_id")
+    ai_analysis_status: Optional[str] = Field(default="pending", max_length=20)  # pending, queued, processing, completed, failed
+    
     # 音訊檔案資訊
     audio_path: Optional[str] = None
     audio_duration: Optional[float] = None  # 音訊時長（秒）
@@ -68,6 +74,10 @@ class PracticeRecord(SQLModel, table=True):
     practice_session: PracticeSession = Relationship(back_populates="practice_records")
     sentence: Sentence = Relationship(back_populates="practice_records")
     feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
+    ai_analysis_task: Optional[AIAnalysisTask] = Relationship(
+        back_populates="practice_record",
+        sa_relationship_kwargs={"uselist": False}
+    )
 
 
 # 待刪除、棄用

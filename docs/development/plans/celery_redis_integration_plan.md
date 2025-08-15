@@ -85,8 +85,8 @@ CREATE TABLE ai_analysis_tasks (
     task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     celery_task_id VARCHAR(255) UNIQUE NOT NULL,
     
-    -- 關聯資訊（配合現有 practice_records 表）
-    practice_record_id UUID NOT NULL REFERENCES practice_records(practice_record_id),
+    -- 關聯資訊（對應到 practice session）
+    practice_session_id UUID NOT NULL REFERENCES practice_sessions(practice_session_id),
     user_id UUID NOT NULL REFERENCES users(user_id),
     
     -- 任務狀態（簡化狀態管理）
@@ -135,19 +135,8 @@ CREATE TABLE ai_analysis_results (
     result_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     task_id UUID UNIQUE NOT NULL REFERENCES ai_analysis_tasks(task_id),
     
-    -- 分析結果
-    overall_score DECIMAL(5,2) CHECK (overall_score >= 0 AND overall_score <= 100),
-    pronunciation_accuracy DECIMAL(5,2) CHECK (pronunciation_accuracy >= 0 AND pronunciation_accuracy <= 100),
-    fluency_score DECIMAL(5,2) CHECK (fluency_score >= 0 AND fluency_score <= 100),
-    rhythm_score DECIMAL(5,2) CHECK (rhythm_score >= 0 AND rhythm_score <= 100),
-    
-    -- 詳細分析數據
-    detailed_analysis JSONB NOT NULL,
-    sentence_analyses JSONB,
-    
-    -- AI 建議
-    suggestions TEXT,
-    improvement_areas JSONB,
+    -- AI 分析結果（完整 JSON）
+    analysis_result JSONB NOT NULL,
     
     -- 元資料
     analysis_model_version VARCHAR(50),
@@ -162,21 +151,60 @@ CREATE TABLE ai_analysis_results (
 -- 建立索引
 CREATE INDEX idx_ai_analysis_results_task_id ON ai_analysis_results(task_id);
 CREATE INDEX idx_ai_analysis_results_created_at ON ai_analysis_results(created_at);
+-- 為了查詢效能，可選擇性地為 JSONB 中的常用欄位建立 GIN 索引
+CREATE INDEX idx_ai_analysis_results_analysis_result ON ai_analysis_results USING GIN (analysis_result);
 ```
+
+#### 分析結果表欄位說明
+
+簡化後的 `ai_analysis_results` 表採用 JSONB 格式儲存完整的 AI 分析結果：
+
+- **`analysis_result`** (JSONB) - 完整的 AI 分析 JSON 結果，包含：
+  ```json
+  {
+    "overall_score": 85.5,           // 整體評分
+    "pronunciation_accuracy": 88.2,  // 發音準確度
+    "fluency_score": 82.1,          // 流暢度評分
+    "rhythm_score": 86.9,           // 節奏評分
+    "detailed_analysis": {          // 詳細分析數據
+      "phoneme_analysis": [...],    // 音素分析
+      "timing_analysis": [...],     // 時間分析
+      "pitch_analysis": [...]       // 音調分析
+    },
+    "sentence_analyses": [...],     // 逐句分析
+    "suggestions": "建議文字...",    // AI 建議
+    "improvement_areas": ["發音"],  // 改進領域
+    "metadata": {                   // 元資料
+      "audio_duration": 45.2,
+      "detected_language": "zh-TW",
+      "confidence_level": 0.92
+    }
+  }
+  ```
+
+**設計優勢**：
+- **靈活性**：AI 服務回傳任何結構都能直接儲存
+- **可擴展性**：新版本 AI 模型無需修改資料庫結構
+- **簡化維護**：減少複雜的表關聯和欄位管理
+- **查詢效能**：GIN 索引支援高效的 JSONB 查詢
 
 ### 現有資料表修改
 
-#### PracticeRecord 表關聯調整
+#### PracticeSession 表關聯調整
 
-由於現有的 `practice_records` 表已經包含完整的狀態管理（`record_status` 包含 `AI_QUEUED`, `AI_PROCESSING`, `AI_ANALYZED` 等狀態），我們只需要新增與任務追蹤的關聯：
+AI 分析任務對應到整個練習會話（practice session），而不是單一練習記錄（practice record）。需要在 `practice_sessions` 表新增任務追蹤關聯：
 
 ```sql
--- 新增 AI 任務追蹤欄位到 practice_records 表
-ALTER TABLE practice_records 
-ADD COLUMN ai_task_id UUID REFERENCES ai_analysis_tasks(task_id);
+-- 新增 AI 任務追蹤欄位到 practice_sessions 表
+ALTER TABLE practice_sessions 
+ADD COLUMN ai_task_id UUID REFERENCES ai_analysis_tasks(task_id),
+ADD COLUMN ai_analysis_status VARCHAR(20) DEFAULT 'pending' CHECK (ai_analysis_status IN (
+    'pending', 'queued', 'processing', 'completed', 'failed'
+));
 
 -- 建立索引
-CREATE INDEX idx_practice_records_ai_task_id ON practice_records(ai_task_id);
+CREATE INDEX idx_practice_sessions_ai_task_id ON practice_sessions(ai_task_id);
+CREATE INDEX idx_practice_sessions_ai_analysis_status ON practice_sessions(ai_analysis_status);
 ```
 
 ## API 設計
@@ -244,17 +272,26 @@ Authorization: Bearer {jwt_token}
 {
     "task_id": "uuid",
     "result_id": "uuid",
-    "overall_score": 85.5,
-    "pronunciation_accuracy": 88.2,
-    "fluency_score": 82.1,
-    "rhythm_score": 86.9,
-    "detailed_analysis": {
-        "phoneme_analysis": [...],
-        "timing_analysis": [...],
-        "pitch_analysis": [...]
+    "analysis_result": {
+        "overall_score": 85.5,
+        "pronunciation_accuracy": 88.2,
+        "fluency_score": 82.1,
+        "rhythm_score": 86.9,
+        "detailed_analysis": {
+            "phoneme_analysis": [...],
+            "timing_analysis": [...],
+            "pitch_analysis": [...]
+        },
+        "sentence_analyses": [...],
+        "suggestions": "建議加強子音發音的清晰度...",
+        "improvement_areas": ["子音發音", "語調變化"],
+        "metadata": {
+            "audio_duration": 45.2,
+            "detected_language": "zh-TW",
+            "confidence_level": 0.92
+        }
     },
-    "suggestions": "建議加強子音發音的清晰度...",
-    "improvement_areas": ["子音發音", "語調變化"],
+    "analysis_model_version": "v2.1",
     "processing_time_seconds": 42.3,
     "completed_at": "2024-01-01T12:01:30Z"
 }
@@ -327,7 +364,7 @@ from celery import Celery
 from ..models import AIAnalysisTask, AIAnalysisResult, TaskStatus
 from ..celery_tasks import analyze_audio_task
 from ...shared.database.database import get_session
-from ...practice.models import PracticeRecord, PracticeRecordStatus
+from ...practice.models import PracticeSession
 
 class TaskService:
     def __init__(self, db: Session):
@@ -336,26 +373,26 @@ class TaskService:
     
     async def submit_analysis_task(
         self,
-        practice_record_id: UUID,
+        practice_session_id: UUID,
         user_id: UUID,
         task_params: Optional[Dict[str, Any]] = None
     ) -> AIAnalysisTask:
-        """提交 AI 分析任務（配合現有 PracticeRecord）"""
+        """提交 AI 分析任務（對應到整個 practice session）"""
         
-        # 驗證 practice_record 存在且屬於該用戶
-        practice_record = self.db.exec(
-            select(PracticeRecord).where(
-                PracticeRecord.practice_record_id == practice_record_id,
-                PracticeRecord.practice_session.has(user_id=user_id)
+        # 驗證 practice_session 存在且屬於該用戶
+        practice_session = self.db.exec(
+            select(PracticeSession).where(
+                PracticeSession.practice_session_id == practice_session_id,
+                PracticeSession.user_id == user_id
             )
         ).first()
         
-        if not practice_record:
-            raise ValueError("Practice record not found or access denied")
+        if not practice_session:
+            raise ValueError("Practice session not found or access denied")
         
         # 建立任務記錄
         task = AIAnalysisTask(
-            practice_record_id=practice_record_id,
+            practice_session_id=practice_session_id,
             user_id=user_id,
             task_params=task_params or {},
             status=TaskStatus.PENDING
@@ -364,16 +401,16 @@ class TaskService:
         self.db.add(task)
         self.db.flush()  # 確保獲得 task_id
         
-        # 更新 practice_record 狀態
-        practice_record.record_status = PracticeRecordStatus.AI_QUEUED
-        practice_record.ai_task_id = task.task_id
+        # 更新 practice_session 狀態
+        practice_session.ai_analysis_status = 'queued'
+        practice_session.ai_task_id = task.task_id
         
         self.db.commit()
         self.db.refresh(task)
         
         # 提交到 Celery（簡化版本）
         celery_task = analyze_audio_task.apply_async(
-            args=[str(practice_record_id), task_params],
+            args=[str(practice_session_id), task_params],
             task_id=str(task.task_id),
             queue='ai_analysis'
         )
@@ -416,25 +453,25 @@ from .celery_app import app
 from .services.ai_analysis_service import AIAnalysisService
 from .models import TaskStatus
 from .utils.task_updater import update_task_status
-from ..practice.models import PracticeRecord, PracticeRecordStatus
+from ..practice.models import PracticeSession
 from ..shared.database.database import get_session
 
 logger = logging.getLogger(__name__)
 
 @app.task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
-def analyze_audio_task(self, practice_record_id: str, analysis_params: Dict[str, Any]):
-    """音訊分析任務（配合現有 PracticeRecord）"""
+def analyze_audio_task(self, practice_session_id: str, analysis_params: Dict[str, Any]):
+    """音訊分析任務（對應到整個 practice session）"""
     task_id = self.request.id
     
     try:
         # 更新任務狀態為處理中
         update_task_status(task_id, TaskStatus.PROCESSING)
         
-        # 更新 practice_record 狀態
+        # 更新 practice_session 狀態
         with get_session() as db:
-            practice_record = db.get(PracticeRecord, UUID(practice_record_id))
-            if practice_record:
-                practice_record.record_status = PracticeRecordStatus.AI_PROCESSING
+            practice_session = db.get(PracticeSession, UUID(practice_session_id))
+            if practice_session:
+                practice_session.ai_analysis_status = 'processing'
                 db.commit()
         
         # 初始化 AI 分析服務
@@ -457,8 +494,8 @@ def analyze_audio_task(self, practice_record_id: str, analysis_params: Dict[str,
             )
         
         # 執行 AI 分析
-        result = ai_service.analyze_practice_record(
-            practice_record_id, 
+        result = ai_service.analyze_practice_session(
+            practice_session_id, 
             analysis_params,
             progress_callback=progress_callback
         )
@@ -469,11 +506,11 @@ def analyze_audio_task(self, practice_record_id: str, analysis_params: Dict[str,
         # 更新狀態為成功
         update_task_status(task_id, TaskStatus.SUCCESS, progress=100)
         
-        # 更新 practice_record 狀態為 AI 分析完成
+        # 更新 practice_session 狀態為 AI 分析完成
         with get_session() as db:
-            practice_record = db.get(PracticeRecord, UUID(practice_record_id))
-            if practice_record:
-                practice_record.record_status = PracticeRecordStatus.AI_ANALYZED
+            practice_session = db.get(PracticeSession, UUID(practice_session_id))
+            if practice_session:
+                practice_session.ai_analysis_status = 'completed'
                 db.commit()
         
         logger.info(f"任務 {task_id} 執行成功")
@@ -486,11 +523,11 @@ def analyze_audio_task(self, practice_record_id: str, analysis_params: Dict[str,
         # 更新錯誤狀態
         update_task_status(task_id, TaskStatus.FAILURE, error_message=str(exc))
         
-        # 更新 practice_record 狀態
+        # 更新 practice_session 狀態
         with get_session() as db:
-            practice_record = db.get(PracticeRecord, UUID(practice_record_id))
-            if practice_record:
-                practice_record.record_status = PracticeRecordStatus.RECORDED  # 回到錄音狀態
+            practice_session = db.get(PracticeSession, UUID(practice_session_id))
+            if practice_session:
+                practice_session.ai_analysis_status = 'failed'
                 db.commit()
         
         # 決定是否重試
@@ -1110,8 +1147,7 @@ class TestTaskService:
             
             task = await task_service.submit_analysis_task(
                 practice_session_id=practice_session_id,
-                user_id=user_id,
-                priority=TaskPriority.NORMAL
+                user_id=user_id
             )
             
             assert task.practice_session_id == practice_session_id
@@ -1146,7 +1182,17 @@ class TestCeleryIntegration:
         
         with patch('src.tasks.services.ai_analysis_service.AIAnalysisService') as mock_service:
             mock_service.return_value.analyze_practice_session.return_value = {
-                "overall_score": 85.5
+                "overall_score": 85.5,
+                "pronunciation_accuracy": 88.2,
+                "fluency_score": 82.1,
+                "rhythm_score": 86.9,
+                "detailed_analysis": {
+                    "phoneme_analysis": [],
+                    "timing_analysis": [],
+                    "pitch_analysis": []
+                },
+                "suggestions": "測試建議",
+                "improvement_areas": ["發音", "語調"]
             }
             
             result = analyze_audio_task.apply(

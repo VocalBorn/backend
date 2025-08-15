@@ -31,6 +31,7 @@ from src.practice.models import *
 from src.therapist.models import TherapistProfile, TherapistClient
 from src.pairing.models import PairingToken
 from src.verification.models import TherapistApplication, UploadedDocument
+from src.ai_analysis.models import AIAnalysisTask, AIAnalysisResult, TaskStatus
 
 # 設置命名約定
 convention = {
