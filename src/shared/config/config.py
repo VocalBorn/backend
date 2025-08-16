@@ -76,9 +76,8 @@ class Settings(BaseSettings):
     PRACTICE_AUDIO_BUCKET_NAME: str = Field(default="practice-recordings", description="練習音訊儲存桶名稱")
     COURSE_AUDIO_BUCKET_NAME: str = Field(default="course-audio", description="課程音訊儲存桶名稱")
     
-    # AI 分析服務設定（待整合）
-    AI_SERVICE_URL: Optional[str] = Field(default=None, description="AI 服務 URL")
-    AI_SERVICE_API_KEY: Optional[str] = Field(default=None, description="AI 服務 API 金鑰")
+    # AI 分析服務設定
+    GEMINI_API_KEY: Optional[str] = Field(default=None, description="AI 服務 Gemini API 金鑰")
     
     # 日誌設定
     LOG_LEVEL: str = Field(default="INFO", description="日誌級別")

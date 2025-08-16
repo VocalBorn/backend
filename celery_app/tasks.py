@@ -6,7 +6,7 @@ VocalBorn Celery 任務匯入檔案
 """
 
 # 從各個任務模組匯入任務
-from .tasks.analyze_audio import analyze_audio_task
+from .tasks.analyze_test_audio import analyze_test_audio_task
 from .tasks.cleanup_expired import cleanup_expired_tasks
 from .tasks.health_check import health_check
 from .tasks.test_task import test_task
@@ -27,8 +27,8 @@ CELERYBEAT_SCHEDULE = {
 
 # 匯出所有任務
 __all__ = [
-    "analyze_audio_task",
-    "cleanup_expired_tasks", 
+    "analyze_test_audio_task",
+    "cleanup_expired_tasks",
     "health_check",
     "test_task",
     "CELERYBEAT_SCHEDULE"

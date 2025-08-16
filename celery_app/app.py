@@ -9,7 +9,7 @@ VocalBorn Celery 應用配置
 
 import logging
 from celery import Celery
-from celery.signals import worker_ready, worker_shutdown
+from celery.signals import worker_ready, worker_shutdown, task_postrun
 from src.shared.config.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -57,10 +57,9 @@ def get_celery_settings():
         "result_expires": 3600,  # 1 小時
         "result_persistent": True,
         
-        # Worker 設定
-        "worker_prefetch_multiplier": 1,
-        "worker_max_tasks_per_child": 1000,
-        
+        # Worker 設定（記憶體優化）
+        "worker_max_tasks_per_child": 1,  # 處理1個任務後重啟 worker 進程
+
         # 監控和序列化
         "worker_send_task_events": True,
         "task_track_started": True,

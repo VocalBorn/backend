@@ -5,11 +5,11 @@ VocalBorn Celery 任務系統
 """
 
 from .app import app
-from .tasks import analyze_audio_task, cleanup_expired_tasks, health_check, test_task
+from .tasks import analyze_test_audio_task, cleanup_expired_tasks, health_check, test_task
 
 __all__ = [
     "app",
-    "analyze_audio_task", 
+    "analyze_test_audio_task",
     "cleanup_expired_tasks",
     "health_check",
     "test_task"
