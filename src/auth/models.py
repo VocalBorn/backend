@@ -5,8 +5,10 @@ import uuid
 from pydantic import BaseModel
 from sqlmodel import Field, Relationship, SQLModel
 
-from src.practice.models import PracticeRecord, PracticeSession
-from src.therapist.models import TherapistProfile, TherapistClient
+if TYPE_CHECKING:
+    from src.ai_analysis.models import AIAnalysisTask
+    from src.practice.models import PracticeRecord, PracticeSession
+    from src.therapist.models import TherapistProfile, TherapistClient
 
 class UserRole(str, Enum):
     ADMIN = "admin"
@@ -49,6 +51,7 @@ class User(SQLModel, table=True):
     # Relationships
     account: Account = Relationship(back_populates="user")
     practice_sessions: List["PracticeSession"] = Relationship(back_populates="user")
+    ai_analysis_tasks: List["AIAnalysisTask"] = Relationship(back_populates="user")
     # 治療師檔案（僅治療師角色有此關聯）
     therapist_profile: Optional["TherapistProfile"] = Relationship(back_populates="user")
     # 治療師的客戶列表
