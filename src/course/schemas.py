@@ -178,6 +178,10 @@ class SentenceUpdate(BaseModel):
     content: Optional[str] = None
     start_time: Optional[float] = None
     end_time: Optional[float] = None
+    example_audio_path: Optional[str] = None
+    example_audio_duration: Optional[float] = None
+    example_file_size: Optional[int] = None
+    example_content_type: Optional[str] = None
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -187,7 +191,11 @@ class SentenceUpdate(BaseModel):
                 "role_description": "客人",
                 "content": "請給我一份牛肉麵，小辣",
                 "start_time": 11.0,
-                "end_time": 16.0
+                "end_time": 16.0,
+                "example_audio_path": "course_audio/course_id/chapter_id/sentence_id.mp3",
+                "example_audio_duration": 3.5,
+                "example_file_size": 56789,
+                "example_content_type": "audio/mpeg"
             }
         }
     )
@@ -201,6 +209,10 @@ class SentenceResponse(BaseModel):
     content: str
     start_time: Optional[float]
     end_time: Optional[float]
+    example_audio_path: Optional[str]
+    example_audio_duration: Optional[float]
+    example_file_size: Optional[int]
+    example_content_type: Optional[str]
     created_at: datetime
     updated_at: datetime
 
@@ -215,8 +227,35 @@ class SentenceResponse(BaseModel):
                 "content": "我想要一份牛肉麵，不要太辣",
                 "start_time": 10.5,
                 "end_time": 15.2,
+                "example_audio_path": "course_audio/course_id/chapter_id/sentence_id.mp3",
+                "example_audio_duration": 3.5,
+                "example_file_size": 56789,
+                "example_content_type": "audio/mpeg",
                 "created_at": "2025-05-01T06:05:16.517760",
                 "updated_at": "2025-05-01T06:05:16.518057"
+            }
+        }
+    )
+
+# Audio Upload Response Schema
+class SentenceAudioUploadResponse(BaseModel):
+    """語句音訊上傳回應"""
+    sentence_id: UUID
+    audio_path: str
+    audio_duration: Optional[float]
+    file_size: int
+    content_type: str
+    message: str
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "sentence_id": "550e8400-e29b-41d4-a716-446655440003",
+                "audio_path": "course_audio/course_id/chapter_id/sentence_id.mp3",
+                "audio_duration": 3.5,
+                "file_size": 56789,
+                "content_type": "audio/mpeg",
+                "message": "範例音訊上傳成功"
             }
         }
     )

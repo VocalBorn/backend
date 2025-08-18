@@ -38,6 +38,7 @@ class Chapter(SQLModel, table=True):
     # Relationships
     situation: Situation = Relationship(back_populates="chapters")
     sentences: List["Sentence"] = Relationship(back_populates="chapter")
+    # 避免循環導入，使用字串類型注解
     practice_sessions: List["PracticeSession"] = Relationship(back_populates="chapter")
 
 class Sentence(SQLModel, table=True):
@@ -52,6 +53,13 @@ class Sentence(SQLModel, table=True):
     content: str
     start_time: Optional[float] = None  # 在影片中的開始時間（秒）
     end_time: Optional[float] = None    # 在影片中的結束時間（秒）
+    
+    # 範例音訊檔案資訊（Optional）
+    example_audio_path: Optional[str] = None
+    example_audio_duration: Optional[float] = None  # 音訊時長（秒）
+    example_file_size: Optional[int] = None         # 檔案大小（bytes）
+    example_content_type: Optional[str] = None      # 檔案類型
+    
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 

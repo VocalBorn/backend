@@ -67,7 +67,16 @@ def upgrade() -> None:
     op.add_column('practice_records', sa.Column('content_type', sqlmodel.sql.sqltypes.AutoString(), nullable=True))
     op.add_column('practice_records', sa.Column('recorded_at', sa.DateTime(), nullable=True))
     op.add_column('practice_records', sa.Column('updated_at', sa.DateTime(), nullable=False))
-    op.drop_constraint(op.f('practice_records_user_id_fkey'), 'practice_records', type_='foreignkey')
+    # 檢查約束是否存在，存在才刪除
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (SELECT 1 FROM information_schema.table_constraints 
+                      WHERE constraint_name = 'practice_records_user_id_fkey' 
+                      AND table_name = 'practice_records') THEN
+                ALTER TABLE practice_records DROP CONSTRAINT practice_records_user_id_fkey;
+            END IF;
+        END $$;
+    """)
     op.create_foreign_key('fk_practice_records_practice_session_id_practice_sessions', 'practice_records', 'practice_sessions', ['practice_session_id'], ['practice_session_id'])
     op.drop_column('practice_records', 'user_id')
     # ### end Alembic commands ###

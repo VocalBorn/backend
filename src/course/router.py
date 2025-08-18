@@ -1,5 +1,5 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, UploadFile, File
 from sqlmodel import Session
 
 from src.shared.database.database import get_session
@@ -9,6 +9,7 @@ from src.auth.services.permission_service import (
     RequireEditCourses,
     get_current_user
 )
+from src.storage.audio_storage_service import get_course_audio_storage_service, AudioStorageService
 
 from src.course.schemas import (
     SituationCreate,
@@ -23,7 +24,8 @@ from src.course.schemas import (
     SentenceCreate,
     SentenceUpdate,
     SentenceResponse,
-    SentenceListResponse
+    SentenceListResponse,
+    SentenceAudioUploadResponse
 )
 from src.course.services.situation_service import (
     create_situation,
@@ -45,7 +47,8 @@ from src.course.services.sentence_service import (
     get_sentence,
     list_sentences,
     update_sentence,
-    delete_sentence
+    delete_sentence,
+    upload_sentence_example_audio
 )
 
 router = APIRouter(
@@ -318,3 +321,28 @@ async def delete_sentence_route(
     current_user: Annotated["User", Depends(RequireEditCourses)]
 ):
     return await delete_sentence(sentence_id, session)
+
+@router.post(
+    '/sentence/{sentence_id}/upload-example-audio',
+    response_model=SentenceAudioUploadResponse,
+    summary="上傳語句範例音訊",
+    description="""
+    為指定語句上傳範例音訊檔案。
+    此端點僅限於擁有編輯課程權限的管理員使用。
+    支援的音訊格式：MP3、WAV、M4A、OGG、WebM、FLAC、AAC。
+    檔案大小限制：50MB。
+    """
+)
+async def upload_sentence_example_audio_route(
+    sentence_id: str,
+    file: Annotated[UploadFile, File(description="音訊檔案")],
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated["User", Depends(RequireEditCourses)],
+    audio_storage_service: Annotated[AudioStorageService, Depends(get_course_audio_storage_service)]
+):
+    return await upload_sentence_example_audio(
+        sentence_id=sentence_id,
+        file=file,
+        audio_storage_service=audio_storage_service,
+        session=session
+    )
