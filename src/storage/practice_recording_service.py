@@ -20,7 +20,14 @@ class PracticeRecordingService:
     """練習錄音服務"""
     
     def __init__(self):
-        self.storage_service = get_practice_recording_storage()
+        self._storage_service = None
+    
+    @property
+    def storage_service(self):
+        """延遲初始化儲存服務"""
+        if self._storage_service is None:
+            self._storage_service = get_practice_recording_storage()
+        return self._storage_service
     
     def upload_practice_recording(
         self,
