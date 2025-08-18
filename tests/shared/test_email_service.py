@@ -14,6 +14,7 @@ from src.shared.services.email_service import (
     EmailService,
     EmailTemplates
 )
+from src.shared.config.config import Settings
 
 
 class TestEmailTemplates:
@@ -82,24 +83,24 @@ class TestEmailService:
     """Email Service 測試類別"""
 
     @pytest.fixture
-    def mock_environment(self):
-        """Mock 環境變數"""
-        return {
-            'EMAIL_SERVICE_HOST': 'localhost',
-            'EMAIL_SERVICE_PORT': '8080',
-            'BASE_URL': 'https://example.com'
-        }
+    def mock_settings(self):
+        """Mock Settings 實例"""
+        mock_settings = Mock(spec=Settings)
+        mock_settings.EMAIL_SERVICE_HOST = 'localhost'
+        mock_settings.EMAIL_SERVICE_PORT = '8080'
+        mock_settings.BASE_URL = 'https://example.com'
+        return mock_settings
 
     @pytest.fixture
-    def email_service(self, mock_environment):
+    def email_service(self, mock_settings):
         """建立 EmailService 實例"""
-        with patch.dict('os.environ', mock_environment):
+        with patch('src.shared.services.email_service.get_settings', return_value=mock_settings):
             return EmailService()
 
-    def test_init_success(self, mock_environment):
+    def test_init_success(self, mock_settings):
         """測試成功初始化 EmailService"""
         # Act
-        with patch.dict('os.environ', mock_environment):
+        with patch('src.shared.services.email_service.get_settings', return_value=mock_settings):
             service = EmailService()
         
         # Assert
@@ -113,20 +114,24 @@ class TestEmailService:
     def test_init_missing_host(self):
         """測試缺少 EMAIL_SERVICE_HOST 環境變數"""
         # Arrange
-        env = {'EMAIL_SERVICE_PORT': '8080'}
+        mock_settings = Mock(spec=Settings)
+        mock_settings.EMAIL_SERVICE_HOST = None
+        mock_settings.EMAIL_SERVICE_PORT = '8080'
         
         # Act & Assert
-        with patch.dict('os.environ', env, clear=True):
+        with patch('src.shared.services.email_service.get_settings', return_value=mock_settings):
             with pytest.raises(ValueError, match="未設定郵件服務"):
                 EmailService()
 
     def test_init_missing_port(self):
         """測試缺少 EMAIL_SERVICE_PORT 環境變數"""
         # Arrange
-        env = {'EMAIL_SERVICE_HOST': 'localhost'}
+        mock_settings = Mock(spec=Settings)
+        mock_settings.EMAIL_SERVICE_HOST = 'localhost'
+        mock_settings.EMAIL_SERVICE_PORT = None
         
         # Act & Assert
-        with patch.dict('os.environ', env, clear=True):
+        with patch('src.shared.services.email_service.get_settings', return_value=mock_settings):
             with pytest.raises(ValueError, match="未設定郵件服務"):
                 EmailService()
 
@@ -409,12 +414,12 @@ class TestEmailService:
             # Assert - 目前實作中自定義標頭未被使用，但不應影響功能
             mock_client.post.assert_called_once()
 
-    def test_base_url_construction(self, mock_environment):
+    def test_base_url_construction(self, mock_settings):
         """測試 base URL 構建"""
         # Act
-        with patch.dict('os.environ', mock_environment):
+        with patch('src.shared.services.email_service.get_settings', return_value=mock_settings):
             service = EmailService()
         
         # Assert
-        expected_base_url = f"http://{mock_environment['EMAIL_SERVICE_HOST']}:{mock_environment['EMAIL_SERVICE_PORT']}"
+        expected_base_url = f"http://{mock_settings.EMAIL_SERVICE_HOST}:{mock_settings.EMAIL_SERVICE_PORT}"
         assert service.base_url == expected_base_url
