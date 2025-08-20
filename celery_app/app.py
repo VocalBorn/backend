@@ -26,9 +26,10 @@ def get_celery_settings():
         
         # 任務路由
         "task_routes": {
-            "celery_app.tasks.analyze_audio_task": {"queue": "ai_analysis"},
-            "celery_app.tasks.cleanup_expired_tasks": {"queue": "maintenance"},
-            "celery_app.tasks.health_check": {"queue": "health"},
+            "analyze_audio_task": {"queue": "ai_analysis"},
+            "analyze_test_audio_task": {"queue": "ai_analysis"},
+            "cleanup_expired_tasks": {"queue": "maintenance"},
+            "health_check": {"queue": "health"},
         },
         
         # 佇列設定

@@ -12,7 +12,12 @@ from ..app import app
 from .utils import update_progress, log_task_start, log_task_complete, log_task_error
 from ..services.analysis import compute_scores_and_feedback
 
-@app.task(bind=True, autoretry_for=(Exception,), retry_kwargs={'max_retries': 3, 'countdown': 60})
+@app.task(
+    bind=True, 
+    name="analyze_test_audio_task",
+    autoretry_for=(Exception,), 
+    retry_kwargs={'max_retries': 3, 'countdown': 60}
+)
 def analyze_test_audio_task(
     self, 
     practice_record_id: str, 
@@ -60,9 +65,6 @@ def analyze_test_audio_task(
         if not os.path.exists(patient_audio):
             raise FileNotFoundError(f"病患音檔不存在: {patient_audio}")
             
-        # print(f"使用範例音檔: {example_audio}")
-        # print(f"使用病患音檔: {patient_audio}")
-        
         # 更新任務進度
         update_progress("音檔載入完成，開始分析", 30)
         
