@@ -1,0 +1,200 @@
+name: vocalborn
+
+services:
+  # 資料庫
+  postgres:
+    image: postgres:17
+    container_name: vocalborn-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+    ports:
+      - "4004:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO 物件儲存服務
+  minio:
+    image: minio/minio:latest
+    container_name: vocalborn-minio
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ${MINIO_DATA_PATH}:/data
+    ports:
+      - "4000:9000"
+      - "4001:9002"
+    command: server /data --console-address ":9002"
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/ready" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: vocalborn-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: ${PGADMIN_CONFIG_SERVER_MODE}
+    volumes:
+      - ${PGADMIN_DATA_PATH}:/var/lib/pgadmin
+    ports:
+      - "4002:80"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+  # 後端應用服務
+  backend:
+    image: sindy0514/vocalborn-backend:latest
+    container_name: vocalborn-backend
+    environment:
+      DB_ADDRESS: ${DB_ADDRESS}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+      EMAIL_SERVICE_HOST: 100.92.129.6
+      EMAIL_SERVICE_PORT: 3010
+      BASE_URL: ${BASE_URL}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      MINIO_SECURE: ${MINIO_SECURE}
+      # Celery 配置
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      CELERY_WORKER_CONCURRENCY: 4
+      CELERY_WORKER_MAX_TASKS_PER_CHILD: 1000
+      CELERY_WORKER_PREFETCH_MULTIPLIER: 1
+    ports:
+      - "4003:8000"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+  # Redis 快取服務 & Celery Broker
+  redis:
+    image: redis:8.0.0
+    container_name: vocalborn-redis
+    ports:
+      - "4006:6379"
+    restart: unless-stopped
+    volumes:
+      - ${REDIS_DATA_PATH}:/data
+    command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Celery Worker - AI 分析任務處理
+  celery-worker:
+    image: sindy0514/vocalborn-backend:latest
+    container_name: vocalborn-celery-worker
+    command: uv run celery -A src.tasks.celery_app worker --loglevel=info --queues=ai_analysis --concurrency=4 --hostname=worker@%h
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+      DB_ADDRESS: ${DB_ADDRESS}
+      DB_PORT: ${DB_PORT}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: ${DB_NAME}
+      SECRET_KEY: ${SECRET_KEY}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY}
+      MINIO_BUCKET_NAME: ${MINIO_BUCKET_NAME}
+      MINIO_SECURE: ${MINIO_SECURE}
+    depends_on:
+      redis:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+    volumes:
+      - celery_logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "uv", "run", "celery", "-A", "src.tasks.celery_app", "inspect", "ping"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
+
+  # Flower - Celery 監控介面
+  celery-flower:
+    image: sindy0514/vocalborn-backend:latest
+    container_name: vocalborn-celery-flower
+    command: uv run celery -A src.tasks.celery_app flower --port=5555 --basic_auth=admin:${FLOWER_PASSWORD:-vocalborn2024}
+    ports:
+      - "5555:5555"
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/0
+      CELERY_RESULT_BACKEND: redis://redis:6379/1
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  # nginx 反向代理服務
+  nginx:
+    image: nginx:latest
+    container_name: vocalborn-nginx
+    ports:
+      - "2080:80"
+      - "2443:443"
+    volumes:
+      - ${NGINX_CONF}:/etc/nginx/conf.d:ro
+      - ${NGINX_CERTS}:/etc/nginx/certs:ro
+      - ${NGINX_WWW}:/var/www/vocalborn:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
+  # 自動更新容器服務 
+  watchtower:
+    image: containrrr/watchtower
+    container_name: vocalborn-watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 vocalborn-backend vocalborn-frontend-admin
+  # 管理員後台服務
+  frontend-admin:
+    image: sindy0514/vocalborn-frontend-admin:latest
+    container_name: vocalborn-frontend-admin
+    ports:
+      - "4005:80"
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+volumes:
+  pgadmin_data:
+  redis_data:
+  celery_logs:
+  celery_beat_data:
+networks:
+  vocalborn-services: {}
+  "": {}
