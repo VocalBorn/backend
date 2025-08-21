@@ -1,9 +1,10 @@
 from datetime import datetime
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from uuid import UUID
 
 from fastapi import HTTPException
 from sqlmodel import Session, select
+from sqlalchemy.orm import selectinload
 
 from src.auth.models import User, UserRole
 from src.auth.services.account_service import _create_account_and_user
@@ -13,7 +14,8 @@ from src.therapist.schemas import (
     TherapistProfileUpdate, 
     TherapistRegisterRequest,
     TherapistRegistrationResponse,
-    TherapistProfileData
+    TherapistProfileData,
+    TherapistClientResponse
 )
 from src.verification.models import TherapistApplication, ApplicationStatus
 from src.verification import services as verification_services
@@ -182,7 +184,51 @@ def assign_client_to_therapist(
     return assignment
 
 def get_therapist_clients(session: Session, therapist_id: UUID) -> List[TherapistClient]:
-    return session.exec(select(TherapistClient).where(TherapistClient.therapist_id == therapist_id, TherapistClient.is_active == True)).all()
+    """取得治療師的客戶列表，返回基本的 TherapistClient 物件"""
+    return session.exec(
+        select(TherapistClient).where(
+            TherapistClient.therapist_id == therapist_id,
+            TherapistClient.is_active == True
+        )
+    ).all()
+
+def get_therapist_clients_with_info(session: Session, therapist_id: UUID) -> List[TherapistClientResponse]:
+    """取得治療師的客戶列表，包含完整的客戶和治療師資訊"""
+    # 使用 selectinload 預載入關聯的 client 資料
+    stmt = select(TherapistClient).options(
+        selectinload(TherapistClient.client)
+    ).where(
+        TherapistClient.therapist_id == therapist_id,
+        TherapistClient.is_active == True
+    )
+    
+    therapist_clients = session.exec(stmt).all()
+    
+    # 轉換為回應格式，包含完整的使用者資訊
+    result = []
+    for tc in therapist_clients:
+        client_info = None
+        
+        if tc.client:
+            client_info = {
+                "user_id": str(tc.client.user_id),
+                "name": tc.client.name,
+                "gender": tc.client.gender,
+                "age": tc.client.age,
+                "phone": tc.client.phone,
+                "role": tc.client.role.value if tc.client.role else None
+            }
+        
+        result.append(TherapistClientResponse(
+            id=tc.id,
+            therapist_id=tc.therapist_id,
+            client_id=tc.client_id,
+            created_at=tc.created_at,
+            client_info=client_info,
+            therapist_info=None
+        ))
+    
+    return result
 
 def get_client_therapists(session: Session, client_id: UUID) -> List[TherapistClient]:
     return session.exec(select(TherapistClient).where(TherapistClient.client_id == client_id, TherapistClient.is_active == True)).all()

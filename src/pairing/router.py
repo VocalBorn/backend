@@ -361,11 +361,10 @@ async def get_my_therapists_router(
             detail="只有客戶可以查看治療師列表"
         )
     
-    from src.therapist.services.therapist_service import TherapistService
-    therapist_service = TherapistService(session)
+    from src.therapist.services import therapist_service
     
     # 取得客戶的治療師列表
-    therapist_relations = therapist_service.get_client_therapists(current_user.user_id)
+    therapist_relations = therapist_service.get_client_therapists(session, current_user.user_id)
     
     therapists = []
     for relation in therapist_relations:
@@ -430,9 +429,8 @@ async def get_pairing_stats_router(
     active_tokens = get_active_tokens_count(session, current_user.user_id)
 
     # 取得客戶數量
-    from src.therapist.services.therapist_service import TherapistService
-    therapist_service = TherapistService(session)
-    clients = therapist_service.get_therapist_clients(current_user.user_id)
+    from src.therapist.services import therapist_service
+    clients = therapist_service.get_therapist_clients(session, current_user.user_id)
 
     return {
         "active_tokens": active_tokens,
