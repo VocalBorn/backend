@@ -116,7 +116,7 @@ def perform_audio_analysis(example_audio_path: str, user_audio_path: str) -> dic
     Raises:
         AudioTaskServiceError: 當分析失敗時
     """
-    from celery_app.services.analysis import compute_scores_and_feedback
+    from celery_app.services.analysis_audio.audio_analysis_service import compute_scores_and_feedback
     from celery_app.services.file_utils import temporary_audio_files
     
     logger.info("開始執行 AI 音訊分析")

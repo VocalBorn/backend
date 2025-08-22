@@ -3,7 +3,7 @@
 提供 AI 分析、檔案處理、任務管理等相關服務功能。
 """
 
-from .analysis import compute_scores_and_feedback
+from .analysis_audio.audio_analysis_service import compute_scores_and_feedback
 from .file_utils import download_audio_file_to_temp, temporary_audio_files, FileProcessingError
 from .task_utils import (
     get_db_session,

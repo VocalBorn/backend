@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional
 
 from ..app import app
 from .utils import update_progress, log_task_start, log_task_complete, log_task_error
-from ..services.analysis import compute_scores_and_feedback
+from ..services.analysis_audio.audio_analysis_service import compute_scores_and_feedback
 
 @app.task(
     bind=True, 

@@ -12,7 +12,7 @@ from celery import Task
 
 from celery_app.app import app
 from celery_app.services.file_utils import FileProcessingError
-from celery_app.services.audio_task_service import (
+from celery_app.services.analysis_audio.audio_task_service import (
     AudioTaskServiceError,
     fetch_audio_paths,
     download_audio_files,
