@@ -13,18 +13,14 @@ import parselmouth
 import google.generativeai as genai
 
 from src.shared.config.config import get_settings
-
-# 全域模型快取，避免重複載入
-_whisper_model_cache = {}
+from celery_app.services.model_manager import get_model_manager
 
 
 # ─── 模型管理 ───
 def get_whisper_model(model_name: str = "small"):
-    """取得 Whisper 模型，使用快取避免重複載入"""
-    if model_name not in _whisper_model_cache:
-        print(f"載入 Whisper 模型: {model_name}")
-        _whisper_model_cache[model_name] = whisper.load_model(model_name)
-    return _whisper_model_cache[model_name]
+    """取得 Whisper 模型，使用模型管理器"""
+    model_manager = get_model_manager()
+    return model_manager.get_whisper_model(model_name)
 
 
 
@@ -38,14 +34,16 @@ def load_audio(path: str, sr: int = 16000) -> np.ndarray:
 def whisper_transcribe(path: str,
                        model_name: str = "small",
                        language: str = "zh") -> str:
-    model = get_whisper_model(model_name)
-    result = model.transcribe(path, language=language)
-    return result["text"].strip()
+    model_manager = get_model_manager()
+    with model_manager.use_model(model_name) as model:
+        result = model.transcribe(path, language=language)
+        return result["text"].strip()
 
 
 def whisper_confidence(path: str, model_name: str = "small") -> float:
-    model = get_whisper_model(model_name)
-    res = model.transcribe(path)
+    model_manager = get_model_manager()
+    with model_manager.use_model(model_name) as model:
+        res = model.transcribe(path)
     confs = [
         w["confidence"]
         for seg in res.get("segments", [])
@@ -114,19 +112,20 @@ def compute_similarity_metrics(path_ref: str, path_sam: str) -> dict:
         whisper.log_mel_spectrogram(whisper.load_audio(path_sam))
     )
 
-    model = get_whisper_model("small")
-    with torch.no_grad():
-        e_r = model.encoder(
-            torch.from_numpy(mel_r).unsqueeze(0).to(model.device)
-        )
-        e_s = model.encoder(
-            torch.from_numpy(mel_s).unsqueeze(0).to(model.device)
-        )
-
-    emb_sim = embedding_cosine_similarity(
-        e_r.mean(1).cpu().numpy()[0],
-        e_s.mean(1).cpu().numpy()[0]
-    )
+    model_manager = get_model_manager()
+    with model_manager.use_model("small") as model:
+        with torch.no_grad():
+            e_r = model.encoder(
+                torch.from_numpy(mel_r).unsqueeze(0).to(model.device)
+            )
+            e_s = model.encoder(
+                torch.from_numpy(mel_s).unsqueeze(0).to(model.device)
+            )
+            
+            emb_sim = embedding_cosine_similarity(
+                e_r.mean(1).cpu().numpy()[0],
+                e_s.mean(1).cpu().numpy()[0]
+            )
 
     return {
         "emb": float(emb_sim),

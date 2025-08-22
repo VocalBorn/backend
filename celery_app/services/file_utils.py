@@ -59,40 +59,59 @@ def download_audio_file_to_temp(storage_service: AudioStorageService, audio_path
         FileProcessingError: 當檔案下載失敗時
     """
     try:
-        # 檢查檔案是否存在
-        if not storage_service.file_exists(audio_path):
-            raise FileProcessingError(f"音檔不存在: {audio_path}")
-        
         # 建立暫存檔案
         file_extension = os.path.splitext(audio_path)[1] or '.mp3'
         temp_fd, temp_path = tempfile.mkstemp(suffix=file_extension)
         
         try:
-            # 從 MinIO 下載檔案
+            # 直接嘗試下載檔案（如果不存在會拋出異常）
             with os.fdopen(temp_fd, 'wb') as temp_file:
                 response = storage_service.client.get_object(
                     storage_service.bucket_name,
                     audio_path
                 )
+                
+                # 檢查是否成功取得資料
+                data_written = False
                 for data in response.stream(32*1024):
                     temp_file.write(data)
+                    data_written = True
                 response.close()
+                
+                # 如果沒有寫入任何資料，表示檔案可能為空
+                if not data_written:
+                    raise FileProcessingError(f"音檔為空或下載失敗: {audio_path}")
             
-            logger.debug(f"音檔下載完成: {audio_path} -> {temp_path}")
+            # 檢查下載的檔案大小
+            if os.path.getsize(temp_path) == 0:
+                raise FileProcessingError(f"下載的音檔為空: {audio_path}")
+            
+            logger.debug(f"音檔下載完成: {audio_path} -> {temp_path}, 大小: {os.path.getsize(temp_path)} bytes")
             return temp_path
             
         except Exception as e:
             # 如果下載失敗，清理暫存檔案
             try:
-                os.close(temp_fd)
-                os.unlink(temp_path)
+                if 'temp_fd' in locals():
+                    os.close(temp_fd)
+                if os.path.exists(temp_path):
+                    os.unlink(temp_path)
             except:
                 pass
-            raise FileProcessingError(f"下載音檔失敗: {audio_path}, 錯誤: {e}")
+                
+            # 根據錯誤類型提供更具體的錯誤訊息
+            if "NoSuchKey" in str(e) or "NoSuchObject" in str(e):
+                raise FileProcessingError(f"音檔不存在: {audio_path}")
+            elif "AccessDenied" in str(e):
+                raise FileProcessingError(f"音檔存取被拒絕: {audio_path}")
+            else:
+                raise FileProcessingError(f"下載音檔失敗: {audio_path}, 錯誤: {e}")
             
     except Exception as e:
+        if isinstance(e, FileProcessingError):
+            raise
         logger.error(f"音檔下載過程發生錯誤: {e}")
-        raise
+        raise FileProcessingError(f"音檔下載過程發生未預期錯誤: {e}")
 
 
 __all__ = ["temporary_audio_files", "download_audio_file_to_temp", "FileProcessingError"]

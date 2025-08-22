@@ -59,7 +59,7 @@ def get_celery_settings():
         "result_persistent": True,
         
         # Worker 設定（記憶體優化）
-        "worker_max_tasks_per_child": 1,  # 處理1個任務後重啟 worker 進程
+        "worker_max_tasks_per_child": 10,  # 處理10個任務後重啟 worker 進程（優化模型重複載入）
 
         # 監控和序列化
         "worker_send_task_events": True,
@@ -93,9 +93,25 @@ app = create_celery_app()
 def worker_ready_handler(sender=None, **kwargs):
     """Worker 就緒事件處理器"""
     logger.info(f"Celery worker {sender.hostname} 已準備就緒")
+    
+    # 預載入常用模型以提升效能
+    try:
+        from celery_app.services.model_manager import preload_common_models
+        preload_common_models()
+        logger.info("模型預載入完成")
+    except Exception as e:
+        logger.warning(f"模型預載入失敗: {e}")
 
 
 @worker_shutdown.connect  
 def worker_shutdown_handler(sender=None, **kwargs):
     """Worker 關閉事件處理器"""
     logger.info(f"Celery worker {sender.hostname} 正在關閉")
+    
+    # 清理所有模型以釋放記憶體
+    try:
+        from celery_app.services.model_manager import cleanup_models
+        cleanup_models()
+        logger.info("模型清理完成")
+    except Exception as e:
+        logger.warning(f"模型清理失敗: {e}")

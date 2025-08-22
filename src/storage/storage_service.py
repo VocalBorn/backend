@@ -171,12 +171,21 @@ class StorageService:
         """檢查檔案是否存在"""
         try:
             self.client.stat_object(self.bucket_name, object_name)
+            logger.debug(f"檔案存在確認: {object_name}")
             return True
-        except S3Error:
-            return False
+        except S3Error as e:
+            # 檢查具體的 S3 錯誤類型
+            error_code = getattr(e, 'code', '')
+            if error_code in ['NoSuchKey', 'NoSuchObject', 'NotFound']:
+                logger.debug(f"檔案不存在: {object_name}")
+                return False
+            else:
+                # 其他 S3 錯誤（如連線問題）應該拋出異常而不是返回 False
+                logger.error(f"S3 錯誤 - 檢查檔案存在性: {e}")
+                raise StorageServiceError(f"無法檢查檔案存在性: {e}")
         except Exception as e:
-            logger.error(f"檢查檔案存在性時發生錯誤: {e}")
-            return False
+            logger.error(f"檢查檔案存在性時發生未預期錯誤: {e}")
+            raise StorageServiceError(f"檢查檔案存在性時發生未預期錯誤: {e}")
 
 # 工廠函數用於建立儲存服務實例
 def create_storage_service(bucket_name: str) -> StorageService:

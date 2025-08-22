@@ -5,6 +5,7 @@
 
 from .analysis_audio.audio_analysis_service import compute_scores_and_feedback
 from .file_utils import download_audio_file_to_temp, temporary_audio_files, FileProcessingError
+from .model_manager import get_model_manager, preload_common_models, cleanup_models
 from .task_utils import (
     get_db_session,
     update_task_status,
@@ -21,6 +22,11 @@ __all__ = [
     "download_audio_file_to_temp",
     "temporary_audio_files", 
     "FileProcessingError",
+    
+    # 模型管理服務
+    "get_model_manager",
+    "preload_common_models",
+    "cleanup_models",
     
     # 任務管理服務
     "get_db_session",
