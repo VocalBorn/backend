@@ -9,7 +9,7 @@ VocalBorn Celery 應用配置
 
 import logging
 from celery import Celery
-from celery.signals import worker_ready, worker_shutdown, task_postrun
+from celery.signals import worker_ready, worker_shutdown, worker_process_init, worker_process_shutdown, task_postrun
 from src.shared.config.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -93,14 +93,38 @@ app = create_celery_app()
 def worker_ready_handler(sender=None, **kwargs):
     """Worker 就緒事件處理器"""
     logger.info(f"Celery worker {sender.hostname} 已準備就緒")
+
+
+@worker_process_init.connect
+def worker_process_init_handler(sender=None, **kwargs):
+    """Worker 進程初始化事件處理器 - 在每個 worker 子進程中執行"""
+    import os
+    process_id = os.getpid()
+    logger.info(f"Worker 進程 {process_id} 初始化中，開始預載入模型")
     
-    # 預載入常用模型以提升效能
+    # 在每個 worker 子進程中預載入常用模型
     try:
         from celery_app.services.model_manager import preload_common_models
         preload_common_models()
-        logger.info("模型預載入完成")
+        logger.info(f"Worker 進程 {process_id} 模型預載入完成")
     except Exception as e:
-        logger.warning(f"模型預載入失敗: {e}")
+        logger.warning(f"Worker 進程 {process_id} 模型預載入失敗: {e}")
+
+
+@worker_process_shutdown.connect
+def worker_process_shutdown_handler(sender=None, **kwargs):
+    """Worker 進程關閉事件處理器 - 在每個 worker 子進程中執行"""
+    import os
+    process_id = os.getpid()
+    logger.info(f"Worker 進程 {process_id} 正在關閉，清理模型")
+    
+    # 清理當前進程的所有模型以釋放記憶體
+    try:
+        from celery_app.services.model_manager import cleanup_models
+        cleanup_models()
+        logger.info(f"Worker 進程 {process_id} 模型清理完成")
+    except Exception as e:
+        logger.warning(f"Worker 進程 {process_id} 模型清理失敗: {e}")
 
 
 @worker_shutdown.connect  
