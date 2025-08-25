@@ -3,7 +3,8 @@
 用於驗證 AI 分析相關的請求和回應資料格式。
 """
 
-from typing import List
+import datetime
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, ConfigDict
 from uuid import UUID
 
@@ -40,6 +41,84 @@ class AIAnalysisTriggerResponse(BaseModel):
                     "550e8400-e29b-41d4-a716-446655440010",
                     "550e8400-e29b-41d4-a716-446655440011", 
                     "550e8400-e29b-41d4-a716-446655440012"
+                ]
+            }
+        }
+    )
+
+
+class AIAnalysisResultResponse(BaseModel):
+    """AI 分析結果回應
+    
+    用於回傳練習會話的 AI 分析結果資料。
+    """
+    result_id: UUID
+    task_id: UUID
+    analysis_result: Dict[str, Any]
+    analysis_model_version: Optional[str] = None
+    processing_time_seconds: Optional[float] = None
+    created_at: datetime.datetime
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "result_id": "550e8400-e29b-41d4-a716-446655440020",
+                "task_id": "550e8400-e29b-41d4-a716-446655440010",
+                "analysis_result": {
+                    "pronunciation_score": 85.5,
+                    "fluency_score": 78.2,
+                    "accuracy_percentage": 92.1,
+                    "feedback": "整體表現良好，建議加強語調練習"
+                },
+                "analysis_model_version": "v1.2.0",
+                "processing_time_seconds": 3.45,
+                "created_at": "2024-01-15T10:30:00Z"
+            }
+        }
+    )
+
+
+class SessionAIAnalysisResultsResponse(BaseModel):
+    """練習會話 AI 分析結果回應
+    
+    包含指定練習會話的所有 AI 分析結果，按最新時間排序。
+    """
+    practice_session_id: UUID
+    total_results: int
+    results: List[AIAnalysisResultResponse] = []
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "practice_session_id": "550e8400-e29b-41d4-a716-446655440001",
+                "total_results": 3,
+                "results": [
+                    {
+                        "result_id": "550e8400-e29b-41d4-a716-446655440020",
+                        "task_id": "550e8400-e29b-41d4-a716-446655440010",
+                        "analysis_result": {
+                            "pronunciation_score": 85.5,
+                            "fluency_score": 78.2,
+                            "accuracy_percentage": 92.1,
+                            "feedback": "整體表現良好，建議加強語調練習"
+                        },
+                        "analysis_model_version": "v1.2.0",
+                        "processing_time_seconds": 3.45,
+                        "created_at": "2024-01-15T10:30:00Z"
+                    },
+                    {
+                        "result_id": "550e8400-e29b-41d4-a716-446655440021",
+                        "task_id": "550e8400-e29b-41d4-a716-446655440011",
+                        "analysis_result": {
+                            "pronunciation_score": 82.1,
+                            "fluency_score": 75.8,
+                            "accuracy_percentage": 89.3,
+                            "feedback": "發音清晰，可再加強流暢度"
+                        },
+                        "analysis_model_version": "v1.2.0",
+                        "processing_time_seconds": 2.89,
+                        "created_at": "2024-01-15T10:25:00Z"
+                    }
                 ]
             }
         }
