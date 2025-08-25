@@ -102,6 +102,18 @@ def worker_process_init_handler(sender=None, **kwargs):
     process_id = os.getpid()
     logger.info(f"Worker 進程 {process_id} 初始化中，開始預載入模型")
     
+    # 初始化 SQLModel 表格註冊 - 確保所有模型都被正確註冊
+    try:
+        # 導入所有模型以確保表格註冊
+        from src.auth.models import Account, User, EmailVerification, UserWord
+        from src.ai_analysis.models import AIAnalysisTask, AIAnalysisResult
+        from src.practice.models import PracticeSession, PracticeRecord, PracticeFeedback, PracticeSessionFeedback
+        from src.course.models import Situation, Chapter, Sentence
+        from src.therapist.models import TherapistProfile, TherapistClient
+        logger.info(f"Worker 進程 {process_id} SQLModel 表格註冊完成")
+    except Exception as e:
+        logger.error(f"Worker 進程 {process_id} SQLModel 表格註冊失敗: {e}")
+    
     # 在每個 worker 子進程中預載入常用模型
     try:
         from celery_app.services.model_manager import preload_common_models

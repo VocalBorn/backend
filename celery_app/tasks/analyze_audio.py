@@ -19,6 +19,12 @@ from celery_app.services.analysis_audio.audio_task_service import (
     perform_audio_analysis,
     create_analysis_summary
 )
+from src.ai_analysis.models import TaskStatus
+from celery_app.services.db_operations import (
+    update_task_status_sync,
+    save_analysis_result_sync,
+    safe_update_task_status
+)
 
 
 # 設定日誌
@@ -39,11 +45,15 @@ class AudioAnalysisTask(Task):
     def on_failure(self, exc, task_id, args, kwargs, einfo):
         """任務失敗時的處理"""
         logger.error(f"音訊分析任務失敗: {task_id}, 異常: {exc}")
-        # TODO: AI 分析任務表功能尚未完成，暫時不進行失敗狀態更新
+        
+        # 更新任務狀態為失敗
+        safe_update_task_status(task_id, TaskStatus.FAILURE)
     
     def on_success(self, retval, task_id, args, kwargs):
         """任務成功時的處理"""
         logger.info(f"音訊分析任務成功完成: {task_id}")
+        # 更新任務狀態為成功
+        safe_update_task_status(task_id, TaskStatus.SUCCESS)
 
 
 @app.task(
@@ -103,27 +113,37 @@ def analyze_audio_task(
         # 4. 計算處理時間
         processing_time = time.time() - start_time
         
-        # TODO: AI 分析任務表功能尚未完成，暫時註解相關代碼
-        # TODO: 當 AI 分析任務表完成後，需要恢復以下功能：
-        # TODO: 1. 建立分析結果記錄到資料庫
-        # TODO: 2. 更新任務狀態為完成
+        # 5. 儲存分析結果到資料庫
+        try:
+            save_analysis_result_sync(
+                celery_task_id=self.request.id,
+                analysis_result=analysis_result,
+                analysis_model_version="v1.0",  # 可以從設定檔或環境變數讀取
+                processing_time_seconds=processing_time
+            )
+        except Exception as e:
+            logger.error(f"儲存分析結果到資料庫失敗: {e}")
+            # 即使儲存失敗，也要返回分析摘要
         
-        # 5. 建立並返回分析摘要
+        # 6. 建立並返回分析摘要
         return create_analysis_summary(practice_record_id, sentence_id, analysis_result, processing_time)
         
     except (AudioAnalysisError, FileProcessingError, AudioTaskServiceError) as e:
         logger.error(f"音訊分析錯誤: {e}")
-        # TODO: AI 分析任務表功能尚未完成，暫時註解錯誤狀態更新
+        # 更新任務狀態為失敗
+        safe_update_task_status(self.request.id, TaskStatus.FAILURE)
         raise
         
     except ValueError as e:
         logger.error(f"參數驗證錯誤: {e}")
-        # TODO: AI 分析任務表功能尚未完成，暫時註解錯誤狀態更新
+        # 更新任務狀態為失敗
+        safe_update_task_status(self.request.id, TaskStatus.FAILURE)
         raise
         
     except Exception as e:
         logger.error(f"音訊分析任務發生未預期錯誤: {e}")
-        # TODO: AI 分析任務表功能尚未完成，暫時註解錯誤狀態更新
+        # 更新任務狀態為失敗
+        safe_update_task_status(self.request.id, TaskStatus.FAILURE)
         raise AudioAnalysisError(f"音訊分析過程發生錯誤: {e}")
 
 

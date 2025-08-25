@@ -1,11 +1,13 @@
 import datetime
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
 import uuid
 
 from src.course.models import Chapter, Sentence
-from src.ai_analysis.models import AIAnalysisTask
+
+if TYPE_CHECKING:
+    from src.ai_analysis.models import AIAnalysisTask
 
 class PracticeSessionStatus(str, Enum):
     IN_PROGRESS = "in_progress"    # 進行中
@@ -74,8 +76,7 @@ class PracticeRecord(SQLModel, table=True):
     practice_session: PracticeSession = Relationship(back_populates="practice_records")
     sentence: Sentence = Relationship(back_populates="practice_records")
     feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
-    ai_analysis_task: Optional[AIAnalysisTask] = Relationship(
-        back_populates="practice_record",
+    ai_analysis_task: Optional["AIAnalysisTask"] = Relationship(
         sa_relationship_kwargs={"uselist": False}
     )
 

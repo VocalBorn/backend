@@ -18,6 +18,7 @@ from src.practice.routers.therapist_router import router as therapist_practice_r
 from src.pairing.router import router as pairing_router
 from src.verification.router import router as verification_router
 from src.ai_analysis.routers.management_router import management_router
+from src.ai_analysis.router import router as ai_analysis_router
 
 # 系統啟動時進行健康檢查並建立資料庫連線
 @asynccontextmanager
@@ -62,6 +63,7 @@ app.include_router(therapist_practice_router)
 app.include_router(pairing_router)
 app.include_router(verification_router)
 app.include_router(management_router)
+app.include_router(ai_analysis_router)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

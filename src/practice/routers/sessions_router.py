@@ -3,6 +3,7 @@
 處理練習會話的 CRUD 操作
 """
 
+import logging
 from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select, func, and_, desc
@@ -17,7 +18,8 @@ from src.course.models import Chapter
 from src.practice.schemas import (
     PracticeSessionCreate,
     PracticeSessionResponse,
-    PracticeSessionListResponse
+    PracticeSessionListResponse,
+    AIAnalysisTriggerResponse
 )
 
 from src.practice.services.practice_service import (
@@ -26,6 +28,9 @@ from src.practice.services.practice_service import (
     delete_practice_session,
     complete_practice_session
 )
+
+# 設定日誌
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix='/practice/sessions',
@@ -280,6 +285,19 @@ async def complete_session(
     completed_sentences = db_session.exec(completed_sentences_stmt).one()
     
     pending_sentences = total_sentences - completed_sentences
+    
+    # 觸發 AI 分析任務
+    try:
+        from src.ai_analysis.services.ai_analysis_service import create_analysis_tasks_for_session
+        await create_analysis_tasks_for_session(
+            practice_session_id=practice_session_id,
+            user_id=current_user.user_id,
+            db_session=db_session
+        )
+        logger.info(f"已為會話 {practice_session_id} 觸發 AI 分析任務")
+    except Exception as e:
+        # AI 分析任務失敗不應影響會話完成的回應
+        logger.error(f"觸發 AI 分析任務失敗: {e}")
     
     return PracticeSessionResponse(
         practice_session_id=practice_session.practice_session_id,

@@ -27,6 +27,7 @@ from .practice_session import (
     PracticeSessionCreate,
     PracticeSessionListResponse,
     PracticeSessionResponse,
+    AIAnalysisTriggerResponse,
 )
 from .stats import PracticeStatsResponse
 from .therapist import (
@@ -66,6 +67,7 @@ __all__ = [
     "PracticeSessionCreate",
     "PracticeSessionResponse",
     "PracticeSessionListResponse",
+    "AIAnalysisTriggerResponse",
     # Stats
     "PracticeStatsResponse",
     # Therapist

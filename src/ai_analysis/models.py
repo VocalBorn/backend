@@ -17,16 +17,18 @@ class TaskStatus(str, Enum):
     用於追蹤 AI 分析任務的執行狀態。
     
     Attributes:
+    PENDING, PROCESSING, SUCCESS, FAILURE, RETRY
         PENDING: 任務已建立，等待執行
         PROCESSING: 任務正在執行中
-        COMPLETED: 任務執行完成（包含成功和失敗）
-        CANCELLED: 任務已被取消
+        SUCCESS: 任務執行成功
+        FAILURE: 任務執行失敗
+        RETRY: 任務需要重試
     """
     PENDING = "pending"         # 等待中
-    PROCESSING = "processing"   # 處理中  
-    COMPLETED = "completed"     # 完成（成功或失敗都算完成）
-    CANCELLED = "cancelled"     # 已取消
-
+    PROCESSING = "processing"   # 處理中
+    SUCCESS = "success"         # 成功
+    FAILURE = "failure"         # 失敗
+    RETRY = "retry"             # 重試
 
 class AIAnalysisTask(SQLModel, table=True):
     """AI 分析任務追蹤表
@@ -63,8 +65,6 @@ class AIAnalysisTask(SQLModel, table=True):
     created_at: datetime.datetime = Field(default_factory=datetime.datetime.utcnow, nullable=False, index=True)
 
     # Relationships
-    practice_record: Optional["PracticeRecord"] = Relationship(back_populates="ai_analysis_task")
-    user: "User" = Relationship(back_populates="ai_analysis_tasks")
     ai_analysis_result: Optional["AIAnalysisResult"] = Relationship(
         back_populates="ai_analysis_task", 
         sa_relationship_kwargs={"uselist": False}
