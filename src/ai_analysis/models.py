@@ -69,6 +69,8 @@ class AIAnalysisTask(SQLModel, table=True):
         back_populates="ai_analysis_task", 
         sa_relationship_kwargs={"uselist": False}
     )
+    # 注意：為避免循環導入問題，暫時移除與 PracticeRecord 的 Relationship
+    # practice_record: Optional["PracticeRecord"] = Relationship(back_populates="ai_analysis_task")
 
 
 class AIAnalysisResult(SQLModel, table=True):

@@ -38,8 +38,8 @@ class Chapter(SQLModel, table=True):
     # Relationships
     situation: Situation = Relationship(back_populates="chapters")
     sentences: List["Sentence"] = Relationship(back_populates="chapter")
-    # 避免循環導入，使用字串類型注解
-    practice_sessions: List["PracticeSession"] = Relationship(back_populates="chapter")
+    # 注意：為避免循環導入問題，暫時移除與 PracticeSession 的 Relationship
+    # practice_sessions: List["PracticeSession"] = Relationship(back_populates="chapter")
 
 class Sentence(SQLModel, table=True):
     """語句表"""
@@ -65,5 +65,6 @@ class Sentence(SQLModel, table=True):
 
     # Relationships
     chapter: Chapter = Relationship(back_populates="sentences")
-    practice_records: List["PracticeRecord"] = Relationship(back_populates="sentence")
+    # 注意：為避免循環導入問題，暫時移除與 PracticeRecord 的 Relationship
+    # practice_records: List["PracticeRecord"] = Relationship(back_populates="sentence")
 

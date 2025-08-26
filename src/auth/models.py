@@ -49,7 +49,8 @@ class User(SQLModel, table=True):
     
     # Relationships
     account: Account = Relationship(back_populates="user")
-    practice_sessions: List["PracticeSession"] = Relationship(back_populates="user")
+    # 注意：為避免循環導入問題，暫時移除 practice_sessions 的 Relationship
+    # practice_sessions: List["PracticeSession"] = Relationship(back_populates="user")
     # 治療師檔案（僅治療師角色有此關聯）
     therapist_profile: Optional["TherapistProfile"] = Relationship(back_populates="user")
     # 治療師的客戶列表

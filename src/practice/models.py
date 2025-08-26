@@ -4,7 +4,8 @@ from typing import List, Optional, TYPE_CHECKING
 from sqlmodel import Field, Relationship, SQLModel
 import uuid
 
-from src.course.models import Chapter, Sentence
+# 注意：為避免循環導入問題，暫時移除 Chapter 和 Sentence 的導入
+# from src.course.models import Chapter, Sentence
 
 if TYPE_CHECKING:
     from src.ai_analysis.models import AIAnalysisTask
@@ -42,8 +43,10 @@ class PracticeSession(SQLModel, table=True):
     updated_at: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
     # Relationships
-    user: "User" = Relationship(back_populates="practice_sessions")
-    chapter: Chapter = Relationship(back_populates="practice_sessions")
+    # 注意：為避免循環導入問題，暫時移除與 User 的 Relationship
+    # user: "User" = Relationship(back_populates="practice_sessions")
+    # 注意：為避免循環導入問題，暫時移除與 Chapter 的 Relationship
+    # chapter: Chapter = Relationship(back_populates="practice_sessions")
     practice_records: List["PracticeRecord"] = Relationship(back_populates="practice_session")
     session_feedbacks: List["PracticeSessionFeedback"] = Relationship(back_populates="practice_session")
 
@@ -57,7 +60,7 @@ class PracticeRecord(SQLModel, table=True):
     record_status: PracticeRecordStatus = Field(default=PracticeRecordStatus.PENDING)
     
     # AI 任務追蹤欄位
-    ai_task_id: Optional[uuid.UUID] = Field(default=None, foreign_key="ai_analysis_tasks.task_id")
+    ai_task_id: Optional[uuid.UUID] = Field(default=None)
     ai_analysis_status: Optional[str] = Field(default="pending", max_length=20)  # pending, queued, processing, completed, failed
     
     # 音訊檔案資訊
@@ -74,11 +77,11 @@ class PracticeRecord(SQLModel, table=True):
 
     # Relationships
     practice_session: PracticeSession = Relationship(back_populates="practice_records")
-    sentence: Sentence = Relationship(back_populates="practice_records")
+    # 注意：為避免循環導入問題，暫時移除與 Sentence 的 Relationship
+    # sentence: Sentence = Relationship(back_populates="practice_records")
     feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
-    ai_analysis_task: Optional["AIAnalysisTask"] = Relationship(
-        sa_relationship_kwargs={"uselist": False}
-    )
+    # 注意：為避免循環導入問題，暫時移除 AI 分析任務的 Relationship
+    # ai_analysis_task: Optional["AIAnalysisTask"] = Relationship(back_populates="practice_record")
 
 
 # 待刪除、棄用
@@ -119,3 +122,4 @@ class PracticeSessionFeedback(SQLModel, table=True):
     # Relationships
     practice_session: PracticeSession = Relationship(back_populates="session_feedbacks")
     therapist: "User" = Relationship()
+
