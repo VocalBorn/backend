@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     volumes:
-      - ${POSTGRES_DATA_PATH}:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     ports:
       - "4004:5432"
     restart: unless-stopped
@@ -28,7 +28,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
     volumes:
-      - ${MINIO_DATA_PATH}:/data
+      - minio_data:/data
     ports:
       - "4000:9000"
       - "4001:9002"
@@ -47,7 +47,7 @@ services:
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
       PGADMIN_CONFIG_SERVER_MODE: ${PGADMIN_CONFIG_SERVER_MODE}
     volumes:
-      - ${PGADMIN_DATA_PATH}:/var/lib/pgadmin
+      - pgadmin_data:/var/lib/pgadmin
     ports:
       - "4002:80"
     restart: unless-stopped
@@ -56,7 +56,10 @@ services:
         condition: service_healthy
   # 後端應用服務
   backend:
-    image: sindy0514/vocalborn-backend:latest
+    build:
+      context: ..  # 指向上一層目錄
+      dockerfile: Dockerfile
+    image: vocalborn-backend:latest  # 共用映像
     container_name: vocalborn-backend
     environment:
       DB_ADDRESS: ${DB_ADDRESS}
@@ -100,7 +103,7 @@ services:
       - "4006:6379"
     restart: unless-stopped
     volumes:
-      - ${REDIS_DATA_PATH}:/data
+      - redis_data:/data
     command: redis-server --appendonly yes --maxmemory 2gb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -110,7 +113,7 @@ services:
 
   # Celery Worker - AI 分析任務處理
   celery-worker:
-    image: sindy0514/vocalborn-backend:latest
+    image: vocalborn-backend:latest  # 使用共用映像
     container_name: vocalborn-celery-worker
     command: uv run celery -A celery_app.app worker --loglevel=info -c 2
     environment:
@@ -134,16 +137,11 @@ services:
         condition: service_healthy
     volumes:
       - celery_logs:/app/logs
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
     restart: unless-stopped
 
   # Flower - Celery 監控介面
   celery-flower:
-    image: sindy0514/vocalborn-backend:latest
+    image: vocalborn-backend:latest  # 使用共用映像
     container_name: vocalborn-celery-flower
     command: uv run celery -A celery_app.app flower --port=5555
     ports:
@@ -155,29 +153,29 @@ services:
       - redis
     restart: unless-stopped
 
-  # nginx 反向代理服務
-  nginx:
-    image: nginx:latest
-    container_name: vocalborn-nginx
-    ports:
-      - "2080:80"
-      - "2443:443"
-    volumes:
-      - ${NGINX_CONF}:/etc/nginx/conf.d:ro
-      - ${NGINX_CERTS}:/etc/nginx/certs:ro
-      - ${NGINX_WWW}:/var/www/vocalborn:ro
-    depends_on:
-      - backend
-    restart: unless-stopped
-  # 自動更新容器服務 
-  watchtower:
-    image: containrrr/watchtower
-    container_name: vocalborn-watchtower
-    restart: always
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 30 vocalborn-backend vocalborn-frontend-admin
-  # 管理員後台服務
+  # # nginx 反向代理服務
+  # nginx:
+  #   image: nginx:latest
+  #   container_name: vocalborn-nginx
+  #   ports:
+  #     - "2080:80"
+  #     - "2443:443"
+  #   volumes:
+  #     - ${NGINX_CONF}:/etc/nginx/conf.d:ro
+  #     - ${NGINX_CERTS}:/etc/nginx/certs:ro
+  #     - ${NGINX_WWW}:/var/www/vocalborn:ro
+  #   depends_on:
+  #     - backend
+  #   restart: unless-stopped
+  # # 自動更新容器服務 
+  # watchtower:
+  #   image: containrrr/watchtower
+  #   container_name: vocalborn-watchtower
+  #   restart: always
+  #   volumes:
+  #     - /var/run/docker.sock:/var/run/docker.sock
+  #   command: --interval 30 vocalborn-backend vocalborn-frontend-admin
+  # # 管理員後台服務
   frontend-admin:
     image: sindy0514/vocalborn-frontend-admin:latest
     container_name: vocalborn-frontend-admin
@@ -188,10 +186,10 @@ services:
       - backend
 
 volumes:
+  postgres_data:
+  minio_data:
   pgadmin_data:
   redis_data:
   celery_logs:
-  celery_beat_data:
 networks:
   vocalborn-services: {}
-  "": {}

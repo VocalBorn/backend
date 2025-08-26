@@ -4,11 +4,14 @@ FROM python:3.13.0
 # Set the working directory in the container
 WORKDIR /app
 
-# Copy the requirements file into the container
-COPY requirements.txt .
+# Install uv
+RUN pip install uv
 
-# Install the dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the pyproject.toml and uv.lock files into the container
+COPY pyproject.toml uv.lock ./
+
+# Install the dependencies using uv
+RUN uv sync --frozen
 
 # Copy the rest of the application code into the container
 COPY . .
@@ -17,4 +20,4 @@ COPY . .
 EXPOSE 5000
 
 # Specify the command to run the application
-CMD ["fastapi", "run", "src/main.py"]
+CMD ["uv", "run", "fastapi", "run", "src/main.py"]
