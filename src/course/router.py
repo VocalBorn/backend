@@ -48,9 +48,13 @@ from src.course.services.sentence_service import (
     list_sentences,
     update_sentence,
     delete_sentence,
-    upload_sentence_example_audio,
+    upload_sentence_example_audio
+)
+from src.course.services.sentence_audio_service import (
     generate_sentence_example_audio,
-    batch_generate_sentences_example_audio
+    batch_generate_sentences_example_audio,
+    delete_sentence_example_audio,
+    get_sentence_audio_presigned_url
 )
 
 router = APIRouter(
@@ -393,4 +397,55 @@ async def batch_generate_sentences_example_audio_route(
         chapter_id=chapter_id,
         session=session,
         voice=voice
+    )
+
+@router.delete(
+    '/sentence/{sentence_id}/example-audio',
+    summary="刪除語句範例音訊",
+    description="""
+    刪除指定語句的範例音訊檔案。
+    此端點僅限於擁有編輯課程權限的管理員使用。
+    刪除後將從儲存空間移除音訊檔案，並清除資料庫中的相關欄位。
+    """
+)
+async def delete_sentence_example_audio_route(
+    sentence_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated["User", Depends(RequireEditCourses)]
+):
+    """刪除語句範例音訊"""
+    return await delete_sentence_example_audio(
+        sentence_id=sentence_id,
+        session=session
+    )
+
+@router.get(
+    '/sentence/{sentence_id}/example-audio-url',
+    summary="取得語句範例音訊聆聽網址",
+    description="""
+    為指定語句的範例音訊檔案生成臨時聆聽網址。
+    此端點需要檢視課程權限。
+    生成的預簽署 URL 預設有效期為 15 分鐘，可透過 expires_minutes 參數調整。
+    最長有效期限為 24 小時（1440 分鐘）。
+    """
+)
+async def get_sentence_example_audio_url_route(
+    sentence_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated["User", Depends(RequireViewCourses)],
+    expires_minutes: int = 15
+):
+    """取得語句範例音訊聆聽網址"""
+    from datetime import timedelta
+    
+    # 限制最大有效期為 24 小時
+    if expires_minutes > 1440:
+        expires_minutes = 1440
+    
+    expires_in = timedelta(minutes=expires_minutes)
+    
+    return await get_sentence_audio_presigned_url(
+        sentence_id=sentence_id,
+        session=session,
+        expires_in=expires_in
     )
