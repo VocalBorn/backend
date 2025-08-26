@@ -9,6 +9,7 @@ from .analyze_test_audio import analyze_test_audio_task
 from .cleanup_expired import cleanup_expired_tasks
 from .health_check import health_check
 from .test_task import test_task
+from .text_to_speech import generate_sentence_audio_task, batch_generate_sentence_audio_task, TTSTaskError
 
 # Beat 排程配置
 CELERYBEAT_SCHEDULE = {
@@ -31,5 +32,8 @@ __all__ = [
     "cleanup_expired_tasks", 
     "health_check",
     "test_task",
+    "generate_sentence_audio_task",
+    "batch_generate_sentence_audio_task",
+    "TTSTaskError",
     "CELERYBEAT_SCHEDULE"
 ]

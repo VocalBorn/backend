@@ -12,3 +12,7 @@ engine = create_engine(
 def get_session():
   with Session(engine) as session:
     yield session
+
+def get_sync_session():
+  """取得同步資料庫會話（用於 Celery 任務）"""
+  return Session(engine)

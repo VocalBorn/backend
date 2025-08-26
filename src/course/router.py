@@ -48,7 +48,9 @@ from src.course.services.sentence_service import (
     list_sentences,
     update_sentence,
     delete_sentence,
-    upload_sentence_example_audio
+    upload_sentence_example_audio,
+    generate_sentence_example_audio,
+    batch_generate_sentences_example_audio
 )
 
 router = APIRouter(
@@ -345,4 +347,50 @@ async def upload_sentence_example_audio_route(
         file=file,
         audio_storage_service=audio_storage_service,
         session=session
+    )
+
+@router.post(
+    '/sentence/{sentence_id}/generate-example-audio',
+    summary="為語句生成範例音訊",
+    description="""
+    為指定語句使用文字轉語音技術生成範例音訊。
+    此端點僅限於擁有編輯課程權限的管理員使用。
+    系統會使用台灣中文語音合成，預設為女聲。
+    如語句已有範例音訊，將會覆蓋原有檔案。
+    """
+)
+async def generate_sentence_example_audio_route(
+    sentence_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated["User", Depends(RequireEditCourses)],
+    voice: str = "female"
+):
+    """為單一語句生成範例音訊"""
+    return await generate_sentence_example_audio(
+        sentence_id=sentence_id,
+        session=session,
+        voice=voice
+    )
+
+@router.post(
+    '/chapter/{chapter_id}/generate-sentences-audio',
+    summary="為章節中所有語句批次生成範例音訊",
+    description="""
+    為指定章節中的所有語句批次使用文字轉語音技術生成範例音訊。
+    此端點僅限於擁有編輯課程權限的管理員使用。
+    系統會使用台灣中文語音合成，預設為女聲。
+    已有範例音訊的語句將會被覆蓋。
+    """
+)
+async def batch_generate_sentences_example_audio_route(
+    chapter_id: str,
+    session: Annotated[Session, Depends(get_session)],
+    current_user: Annotated["User", Depends(RequireEditCourses)],
+    voice: str = "female"
+):
+    """為章節中所有語句批次生成範例音訊"""
+    return await batch_generate_sentences_example_audio(
+        chapter_id=chapter_id,
+        session=session,
+        voice=voice
     )

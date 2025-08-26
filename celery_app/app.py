@@ -28,6 +28,8 @@ def get_celery_settings():
         "task_routes": {
             "analyze_audio_task": {"queue": "ai_analysis"},
             "analyze_test_audio_task": {"queue": "ai_analysis"},
+            "generate_sentence_audio_task": {"queue": "ai_analysis"},  # 使用預設佇列
+            "batch_generate_sentence_audio_task": {"queue": "ai_analysis"},  # 使用預設佇列
             "cleanup_expired_tasks": {"queue": "maintenance"},
             "health_check": {"queue": "health"},
         },
