@@ -149,7 +149,7 @@ async def get_my_clients(
     current_user: User = Depends(require_permission(Permission.VIEW_ASSIGNED_CLIENTS)),
     session: Session = Depends(get_session)
 ):
-    clients = therapist_service.get_therapist_clients(session, current_user.user_id)
+    clients = therapist_service.get_therapist_clients_with_info(session, current_user.user_id)
     return clients
 
 @router.delete(
