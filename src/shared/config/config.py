@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     # 應用程式基本設定
     APP_NAME: str = "VocalBorn API"
     APP_VERSION: str = "1.0.0"
-    ENVIRONMENT: Literal["development", "staging", "production"] = "development"
+    ENVIRONMENT: Literal["development", "staging", "production", "test"] = "development"
     DEBUG: bool = Field(default=False, description="啟用除錯模式")
     
     # 伺服器設定
@@ -34,16 +34,16 @@ class Settings(BaseSettings):
     BASE_URL: Optional[str] = Field(default=None, description="應用程式基礎 URL")
     
     # 安全設定
-    SECRET_KEY: str = Field(..., description="應用程式密鑰", min_length=5)
+    SECRET_KEY: str = Field(default="test-secret-key-do-not-use-in-production", description="應用程式密鑰", min_length=5)
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, description="存取令牌過期時間（分鐘）")
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, description="刷新令牌過期時間（天）")
     
     # 資料庫設定
-    DB_ADDRESS: str = Field(..., description="資料庫主機地址")
+    DB_ADDRESS: str = Field(default="localhost", description="資料庫主機地址")
     DB_PORT: int = Field(default=5432, description="資料庫埠號")
-    DB_USER: str = Field(..., description="資料庫使用者名稱")
-    DB_PASSWORD: str = Field(..., description="資料庫密碼")
-    DB_NAME: str = Field(..., description="資料庫名稱")
+    DB_USER: str = Field(default="postgres", description="資料庫使用者名稱")
+    DB_PASSWORD: str = Field(default="password", description="資料庫密碼")
+    DB_NAME: str = Field(default="test_db", description="資料庫名稱")
     
     # Redis 設定
     REDIS_HOST: str = Field(default="localhost", description="Redis 主機")
@@ -129,6 +129,11 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         """檢查是否為生產環境"""
         return self.ENVIRONMENT == "production"
+    
+    @property
+    def is_test(self) -> bool:
+        """檢查是否為測試環境"""
+        return self.ENVIRONMENT == "test"
 
 
 @lru_cache()
