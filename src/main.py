@@ -15,6 +15,7 @@ from src.practice.routers.sessions_router import router as practice_sessions_rou
 from src.practice.routers.recordings_router import router as practice_recordings_router
 from src.practice.routers.chapters_router import router as practice_chapters_router
 from src.practice.routers.therapist_router import router as therapist_practice_router
+from src.practice.routers.patient_feedback_router import router as patient_feedback_router
 from src.pairing.router import router as pairing_router
 from src.verification.router import router as verification_router
 from src.ai_analysis.routers.management_router import management_router
@@ -60,6 +61,7 @@ app.include_router(practice_sessions_router)
 app.include_router(practice_recordings_router)
 app.include_router(practice_chapters_router)
 app.include_router(therapist_practice_router)
+app.include_router(patient_feedback_router)
 app.include_router(pairing_router)
 app.include_router(verification_router)
 app.include_router(management_router)

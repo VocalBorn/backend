@@ -39,6 +39,17 @@ from .therapist import (
     TherapistPatientOverviewResponse,
     TherapistPatientsOverviewListResponse,
 )
+from .patient_feedback import (
+    FeedbackFilters,
+    PaginatedFeedbackListResponse,
+    PatientFeedbackDetailResponse,
+    PatientFeedbackListItem,
+    PaginationInfo,
+    TherapistInfo,
+    ChapterInfo,
+    TherapistFeedbackDetail,
+    PracticeRecordDetail
+)
 
 __all__ = [
     # Audio
@@ -78,4 +89,14 @@ __all__ = [
     "PatientPracticeListResponse",
     "PracticeSessionGroup",
     "PatientPracticeSessionsResponse",
+    # Patient Feedback
+    "FeedbackFilters",
+    "PaginatedFeedbackListResponse", 
+    "PatientFeedbackDetailResponse",
+    "PatientFeedbackListItem",
+    "PaginationInfo",
+    "TherapistInfo",
+    "ChapterInfo", 
+    "TherapistFeedbackDetail",
+    "PracticeRecordDetail",
 ]
