@@ -134,18 +134,13 @@ services:
         condition: service_healthy
     volumes:
       - celery_logs:/app/logs
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-          cpus: '1.0'
     restart: unless-stopped
 
   # Flower - Celery 監控介面
   celery-flower:
     image: sindy0514/vocalborn-backend:latest
     container_name: vocalborn-celery-flower
-    command: uv run celery -A celery_app.app flower --port=5555
+    command: uv run celery -A celery_app.app flower --port=5555 --url_prefix=flower
     ports:
       - "5555:5555"
     environment:
@@ -194,4 +189,3 @@ volumes:
   celery_beat_data:
 networks:
   vocalborn-services: {}
-  "": {}

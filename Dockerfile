@@ -4,6 +4,11 @@ FROM python:3.13.0
 # Set the working directory in the container
 WORKDIR /app
 
+# Install system dependencies including ffmpeg
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    && rm -rf /var/lib/apt/lists/*
+
 # Install uv
 RUN pip install uv
 

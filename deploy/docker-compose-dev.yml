@@ -143,7 +143,7 @@ services:
   celery-flower:
     image: vocalborn-backend:latest  # 使用共用映像
     container_name: vocalborn-celery-flower
-    command: uv run celery -A celery_app.app flower --port=5555
+    command: uv run celery -A celery_app.app flower --port=5555 --url_prefix=flower
     ports:
       - "5555:5555"
     environment:
@@ -153,20 +153,20 @@ services:
       - redis
     restart: unless-stopped
 
-  # # nginx 反向代理服務
-  # nginx:
-  #   image: nginx:latest
-  #   container_name: vocalborn-nginx
-  #   ports:
-  #     - "2080:80"
-  #     - "2443:443"
-  #   volumes:
-  #     - ${NGINX_CONF}:/etc/nginx/conf.d:ro
-  #     - ${NGINX_CERTS}:/etc/nginx/certs:ro
-  #     - ${NGINX_WWW}:/var/www/vocalborn:ro
-  #   depends_on:
-  #     - backend
-  #   restart: unless-stopped
+  # nginx 反向代理服務
+  nginx:
+    image: nginx:latest
+    container_name: vocalborn-nginx
+    ports:
+      - "2080:80"
+      - "2443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      # - ${NGINX_CERTS}:/etc/nginx/certs:ro
+      # - ${NGINX_WWW}:/var/www/vocalborn:ro
+    depends_on:
+      - backend
+    restart: unless-stopped
   # # 自動更新容器服務 
   # watchtower:
   #   image: containrrr/watchtower

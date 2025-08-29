@@ -50,6 +50,9 @@ app = FastAPI(
         {
             "url": "http://localhost:8000",
         },
+        {
+            "url": "http://nginx.vocalborn.orb.local/api",
+        },
     ],
     lifespan=lifespan
 )
