@@ -1,0 +1,23 @@
+# Dockerfile.base
+FROM python:3.13.0
+
+# Set the working directory
+WORKDIR /app
+
+# Install system dependencies including ffmpeg
+RUN apt-get update && apt-get install -y \
+    ffmpeg \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN pip install uv
+
+# Create a minimal pyproject.toml with just PyTorch and essential dependencies
+COPY pyproject-base.toml ./pyproject.toml
+
+# Install PyTorch and other heavy dependencies first
+RUN uv sync --frozen --verbose
+
+# Clean up to reduce image size
+RUN apt-get clean && rm -rf /var/lib/apt/lists/*

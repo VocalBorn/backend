@@ -1,0 +1,16 @@
+[project]
+name = "backend-base"
+version = "0.1.0"
+description = "Base dependencies for backend"
+requires-python = ">=3.13.0"
+dependencies = [
+    # PyTorch 相關 (最耗時的部分)
+    "torch>=2.8.0",
+    
+    # 音頻處理相關 (也比較耗時)
+    "librosa>=0.11.0",
+    "openai-whisper>=20250625",
+    "pydub>=0.25.1",
+    "praat-parselmouth>=0.4.6",
+    "edge-tts>=6.1.0",
+]

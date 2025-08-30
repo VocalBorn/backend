@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     MINIO_ENDPOINT: Optional[str] = Field(default=None, description="MinIO 端點")
     MINIO_ACCESS_KEY: Optional[str] = Field(default=None, description="MinIO 存取金鑰")
     MINIO_SECRET_KEY: Optional[str] = Field(default=None, description="MinIO 秘密金鑰")
-    MINIO_BUCKET_NAME: Optional[str] = Field(default="verification-documents", description="MinIO 儲存桶名稱")
+    MINIO_BUCKET_NAME: Optional[str] = Field(default="vocalborn-verifications", description="MinIO 儲存桶名稱")
     MINIO_SECURE: bool = Field(default=True, description="使用 HTTPS 連接 MinIO")
     
     # 音訊儲存設定
