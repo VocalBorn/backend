@@ -1,16 +1,8 @@
 # Use the official Python image from the Docker Hub
-FROM python:3.13.0
+FROM sindy0514/backend-pytorch-base:latest
 
 # Set the working directory in the container
 WORKDIR /app
-
-# Install system dependencies including ffmpeg
-RUN apt-get update && apt-get install -y \
-    ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install uv
-RUN pip install uv
 
 # Copy the pyproject.toml and uv.lock files into the container
 COPY pyproject.toml uv.lock ./

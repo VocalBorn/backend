@@ -1,0 +1,81 @@
+# Git 相關
+.git
+.gitignore
+.gitattributes
+
+# Python 快取檔案
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 虛擬環境
+.venv/
+venv/
+env/
+ENV/
+.env.*
+
+# 套件管理快取
+.uv/
+
+# 測試與覆蓋率報告
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+cover/
+
+# IDE 設定檔
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS 系統檔案
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 開發工具檔案
+*.log
+*.pid
+
+# Celery 運行檔案
+celerybeat-schedule
+celerybeat.pid
+
+# 文件建置檔案
+docs/_build/
+
+# 部署相關檔案（保留 nginx 設定但排除敏感檔案）
+deploy/.env*
+deploy/docker-compose*.yml
+deploy/.gitignore
+
+# Docker 相關檔案
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# README 和文件（這些通常不需要在運行時映像中）
+README.md
+CLAUDE.md
+docs/
+
+# 開發用的音訊樣本檔案
+tests/fixtures/audio_samples/
+celery_app/test/audio_sample/
+
+# 臨時檔案
+*.tmp
+*.temp
+tmp/
+temp/
