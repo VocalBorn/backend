@@ -6,9 +6,6 @@
 import logging
 from typing import Tuple
 
-from sqlmodel import Session, text
-from src.shared.database.database import engine
-
 logger = logging.getLogger(__name__)
 
 
@@ -16,56 +13,6 @@ class AudioTaskServiceError(Exception):
     """音訊任務服務自定義異常"""
     pass
 
-
-def fetch_audio_paths(practice_record_id: str, sentence_id: str) -> Tuple[str, str]:
-    """查詢練習記錄和句子的音檔路徑
-    
-    Args:
-        practice_record_id: 練習記錄 ID
-        sentence_id: 句子 ID
-        
-    Returns:
-        Tuple[str, str]: (用戶音檔路徑, 範例音檔路徑)
-        
-    Raises:
-        AudioTaskServiceError: 當查詢失敗或資料不存在時
-    """
-    logger.info(f"查詢音檔路徑 - practice_record: {practice_record_id}, sentence: {sentence_id}")
-    
-    try:
-        with Session(engine) as session:
-            # 查詢練習記錄的音檔路徑
-            practice_result = session.exec(
-                text("SELECT audio_path FROM practice_records WHERE practice_record_id = :id").params(id=practice_record_id)
-            ).first()
-            
-            if not practice_result:
-                raise AudioTaskServiceError(f"找不到練習記錄: {practice_record_id}")
-            
-            user_audio_path = practice_result[0]
-            if not user_audio_path:
-                raise AudioTaskServiceError(f"練習記錄缺少音檔路徑: {practice_record_id}")
-            
-            # 查詢句子的範例音檔路徑
-            sentence_result = session.exec(
-                text("SELECT example_audio_path FROM sentences WHERE sentence_id = :id").params(id=sentence_id)
-            ).first()
-            
-            if not sentence_result:
-                raise AudioTaskServiceError(f"找不到句子: {sentence_id}")
-            
-            example_audio_path = sentence_result[0]
-            if not example_audio_path:
-                raise AudioTaskServiceError(f"句子缺少範例音檔: {sentence_id}")
-            
-            logger.info(f"成功取得音檔路徑 - 用戶: {user_audio_path}, 範例: {example_audio_path}")
-            return user_audio_path, example_audio_path
-            
-    except Exception as e:
-        if isinstance(e, AudioTaskServiceError):
-            raise
-        logger.error(f"查詢音檔路徑時發生錯誤: {e}")
-        raise AudioTaskServiceError(f"資料庫查詢失敗: {e}")
 
 
 def download_audio_files(user_audio_path: str, example_audio_path: str) -> Tuple[str, str]:
@@ -166,7 +113,6 @@ def create_analysis_summary(
 
 __all__ = [
     "AudioTaskServiceError",
-    "fetch_audio_paths",
     "download_audio_files", 
     "perform_audio_analysis",
     "create_analysis_summary"

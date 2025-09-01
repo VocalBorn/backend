@@ -14,6 +14,7 @@ from src.ai_analysis.services.task_management_service import (
     create_task_record
 )
 from src.practice.models import PracticeRecord, PracticeSession
+from src.course.models import Sentence
 from celery_app.tasks.analyze_audio import analyze_audio_task
 
 
@@ -108,7 +109,27 @@ async def submit_audio_analysis_task(
     try:
         logger.info(f"開始提交音訊分析任務: practice_record={practice_record_id}")
         
-        # 1. 在資料庫中建立任務記錄
+        # 1. 查詢音檔路徑
+        practice_record = db_session.get(PracticeRecord, practice_record_id)
+        if not practice_record:
+            raise AIAnalysisServiceError(f"找不到練習記錄: {practice_record_id}")
+        
+        if not practice_record.audio_path:
+            raise AIAnalysisServiceError(f"練習記錄缺少音檔路徑: {practice_record_id}")
+        
+        sentence = db_session.get(Sentence, sentence_id)
+        if not sentence:
+            raise AIAnalysisServiceError(f"找不到句子: {sentence_id}")
+        
+        if not sentence.example_audio_path:
+            raise AIAnalysisServiceError(f"句子缺少範例音檔: {sentence_id}")
+        
+        user_audio_path = practice_record.audio_path
+        example_audio_path = sentence.example_audio_path
+        
+        logger.info(f"取得音檔路徑 - 用戶: {user_audio_path}, 範例: {example_audio_path}")
+        
+        # 2. 在資料庫中建立任務記錄
         analysis_task = await create_task_record(
             user_id=user_id,
             db_session=db_session,
@@ -116,18 +137,22 @@ async def submit_audio_analysis_task(
             task_params={
                 "practice_record_id": str(practice_record_id),
                 "sentence_id": str(sentence_id),
+                "user_audio_path": user_audio_path,
+                "example_audio_path": example_audio_path,
                 "analysis_params": analysis_params or {}
             }
         )
         
-        # 2. 提交 Celery 任務
+        # 3. 提交 Celery 任務
         celery_task = analyze_audio_task.delay(
             practice_record_id=str(practice_record_id),
             sentence_id=str(sentence_id),
+            user_audio_path=user_audio_path,
+            example_audio_path=example_audio_path,
             analysis_params=analysis_params
         )
         
-        # 3. 更新任務記錄的 Celery ID 和狀態
+        # 4. 更新任務記錄的 Celery ID 和狀態
         analysis_task.celery_task_id = celery_task.id
         analysis_task.status = TaskStatus.PROCESSING
         db_session.add(analysis_task)

@@ -14,7 +14,6 @@ from celery_app.app import app
 from celery_app.services.file_utils import FileProcessingError
 from celery_app.services.analysis_audio.audio_task_service import (
     AudioTaskServiceError,
-    fetch_audio_paths,
     download_audio_files,
     perform_audio_analysis,
     create_analysis_summary
@@ -72,6 +71,8 @@ def analyze_audio_task(
     self,
     practice_record_id: str,
     sentence_id: str,
+    user_audio_path: str,
+    example_audio_path: str,
     analysis_params: Optional[dict] = None
 ) -> dict:
     """AI 音訊分析任務
@@ -81,6 +82,8 @@ def analyze_audio_task(
     Args:
         practice_record_id: 練習記錄 ID
         sentence_id: 句子 ID
+        user_audio_path: 用戶練習錄音的儲存路徑
+        example_audio_path: 範例音檔的儲存路徑
         analysis_params: 分析參數（目前未使用，預留擴展）
     
     Returns:
@@ -99,21 +102,22 @@ def analyze_audio_task(
         if not practice_record_id or not sentence_id:
             raise ValueError("practice_record_id 和 sentence_id 不能為空")
         
+        if not user_audio_path or not example_audio_path:
+            raise ValueError("user_audio_path 和 example_audio_path 不能為空")
+        
         logger.info(f"開始 AI 音訊分析任務: practice_record={practice_record_id}, sentence={sentence_id}")
+        logger.info(f"音檔路徑 - 用戶: {user_audio_path}, 範例: {example_audio_path}")
         
-        # 1. 查詢音檔路徑
-        user_audio_path_str, example_audio_path_str = fetch_audio_paths(practice_record_id, sentence_id)
+        # 1. 下載音檔到暫存檔案
+        user_temp_path, example_temp_path = download_audio_files(user_audio_path, example_audio_path)
         
-        # 2. 下載音檔到暫存檔案
-        user_audio_path, example_audio_path = download_audio_files(user_audio_path_str, example_audio_path_str)
+        # 2. 執行 AI 分析
+        analysis_result = perform_audio_analysis(example_temp_path, user_temp_path)
         
-        # 3. 執行 AI 分析
-        analysis_result = perform_audio_analysis(example_audio_path, user_audio_path)
-        
-        # 4. 計算處理時間
+        # 3. 計算處理時間
         processing_time = time.time() - start_time
         
-        # 5. 儲存分析結果到資料庫
+        # 4. 儲存分析結果到資料庫
         try:
             save_analysis_result_sync(
                 celery_task_id=self.request.id,
@@ -125,7 +129,7 @@ def analyze_audio_task(
             logger.error(f"儲存分析結果到資料庫失敗: {e}")
             # 即使儲存失敗，也要返回分析摘要
         
-        # 6. 建立並返回分析摘要
+        # 5. 建立並返回分析摘要
         return create_analysis_summary(practice_record_id, sentence_id, analysis_result, processing_time)
         
     except (AudioAnalysisError, FileProcessingError, AudioTaskServiceError) as e:
