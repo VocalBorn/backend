@@ -127,8 +127,11 @@ def compute_similarity_metrics(path_ref: str, path_sam: str) -> dict:
                 e_s.mean(1).cpu().numpy()[0]
             )
 
+    # Combine embedding similarity and WER similarity
+    combined_emb = 0.7 * emb_sim + 0.3 * wer_sim  # Adjust weights as needed
+
     return {
-        "emb": float(emb_sim),
+        "emb": float(combined_emb),
         "wer": float(wer_sim),
         "txt_ref": txt_r,
         "txt_sam": txt_s
