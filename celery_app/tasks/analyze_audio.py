@@ -118,7 +118,7 @@ def analyze_audio_task(
             save_analysis_result_sync(
                 celery_task_id=self.request.id,
                 analysis_result=analysis_result,
-                analysis_model_version="v1.0",  # 可以從設定檔或環境變數讀取
+                analysis_model_version="v1.1",  # 可以從設定檔或環境變數讀取
                 processing_time_seconds=processing_time
             )
         except Exception as e:
