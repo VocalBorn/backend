@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 # 載入環境變數
 load_dotenv()
 
+logging.basicConfig(format='%(levelname)s: %(module)s %(message)s', level=logging.INFO)
+
 from src.auth.router import router as auth_router
 from src.auth.admin_router import router as admin_router
 from src.therapist.router import router as therapist_router

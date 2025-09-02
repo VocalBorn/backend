@@ -168,7 +168,7 @@ class StorageService:
             raise StorageServiceError(f"刪除檔案時發生未預期錯誤: {e}")
     
     def file_exists(self, object_name: str) -> bool:
-        """檢查檔案是否存在"""
+        """#TODO(有問題) 檢查檔案是否存在"""
         try:
             self.client.stat_object(self.bucket_name, object_name)
             logger.debug(f"檔案存在確認: {object_name}")
