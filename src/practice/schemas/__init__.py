@@ -50,6 +50,13 @@ from .patient_feedback import (
     TherapistFeedbackDetail,
     PracticeRecordDetail
 )
+from .progress import (
+    DailyPracticeStats,
+    RecentPracticeResponse,
+    TotalSessionsResponse,
+    CourseProgressResponse,
+    UserProgressOverviewResponse
+)
 
 __all__ = [
     # Audio
@@ -99,4 +106,10 @@ __all__ = [
     "ChapterInfo", 
     "TherapistFeedbackDetail",
     "PracticeRecordDetail",
+    # Progress
+    "DailyPracticeStats",
+    "RecentPracticeResponse",
+    "TotalSessionsResponse",
+    "CourseProgressResponse",
+    "UserProgressOverviewResponse",
 ]
