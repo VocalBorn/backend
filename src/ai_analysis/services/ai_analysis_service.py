@@ -5,7 +5,7 @@
 
 import logging
 import uuid
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlmodel import Session, select
 
@@ -220,14 +220,14 @@ async def get_user_analysis_tasks(
     return db_session.exec(stmt).all()
 
 
-async def get_session_ai_analysis_results(
+async def delete_session_ai_analysis_data(
     practice_session_id: uuid.UUID,
     user_id: uuid.UUID,
     db_session: Session
-) -> Tuple[int, List[AIAnalysisResult]]:
-    """取得練習會話的 AI 分析結果
+) -> int:
+    """刪除練習會話的所有 AI 分析資料
     
-    查詢指定練習會話的所有 AI 分析結果，並回傳總數和所有的分析結果。
+    刪除指定練習會話的所有 AI 分析任務和結果，用於重複觸發分析前的資料清理。
     
     Args:
         practice_session_id: 練習會話 ID
@@ -235,13 +235,13 @@ async def get_session_ai_analysis_results(
         db_session: 資料庫會話
         
     Returns:
-        Tuple[int, List[AIAnalysisResult]]: (總結果數量, 所有的分析結果)
+        int: 被刪除的 AI 分析任務數量
         
     Raises:
         AIAnalysisServiceError: 會話不存在或無權限存取時拋出異常
     """
     try:
-        logger.info(f"開始查詢會話 {practice_session_id} 的 AI 分析結果")
+        logger.info(f"開始刪除會話 {practice_session_id} 的所有 AI 分析資料")
         
         # 1. 驗證練習會話存在且屬於當前使用者
         practice_session = db_session.get(PracticeSession, practice_session_id)
@@ -259,12 +259,111 @@ async def get_session_ai_analysis_results(
         
         if not practice_records:
             logger.info(f"會話 {practice_session_id} 沒有練習記錄")
-            return 0, []
+            return 0
         
-        # 3. 取得這些練習記錄相關的 AI 分析任務
+        # 3. 找出與這個會話相關的所有 AI 分析任務
         practice_record_ids = [record.practice_record_id for record in practice_records]
         
-        # 查詢相關的 AI 分析任務（透過 task_params 中的 practice_record_id）
+        # 查詢該使用者的所有 AI 分析任務
+        tasks_stmt = select(AIAnalysisTask).where(
+            AIAnalysisTask.user_id == user_id
+        )
+        all_tasks = db_session.exec(tasks_stmt).all()
+        
+        # 篩選與這個會話相關的任務
+        session_task_ids = []
+        for task in all_tasks:
+            if (task.task_params and 
+                task.task_params.get("practice_record_id") and
+                uuid.UUID(task.task_params["practice_record_id"]) in practice_record_ids):
+                session_task_ids.append(task.task_id)
+        
+        if not session_task_ids:
+            logger.info(f"會話 {practice_session_id} 沒有相關的 AI 分析任務")
+            return 0
+        
+        # 4. 刪除相關的 AI 分析結果
+        results_delete_stmt = select(AIAnalysisResult).where(
+            AIAnalysisResult.task_id.in_(session_task_ids)
+        )
+        results_to_delete = db_session.exec(results_delete_stmt).all()
+        
+        for result in results_to_delete:
+            db_session.delete(result)
+        
+        # 5. 刪除 AI 分析任務
+        tasks_to_delete = [task for task in all_tasks if task.task_id in session_task_ids]
+        for task in tasks_to_delete:
+            db_session.delete(task)
+        
+        # 6. 提交變更
+        db_session.commit()
+        
+        deleted_count = len(tasks_to_delete)
+        results_count = len(results_to_delete)
+        
+        logger.info(f"成功刪除會話 {practice_session_id} 的 {deleted_count} 個 AI 分析任務和 {results_count} 個分析結果")
+        return deleted_count
+        
+    except AIAnalysisServiceError:
+        # 重新拋出業務邏輯異常
+        db_session.rollback()
+        raise
+    except Exception as e:
+        db_session.rollback()
+        logger.error(f"刪除會話 {practice_session_id} 的 AI 分析資料失敗: {e}")
+        raise AIAnalysisServiceError(f"刪除 AI 分析資料失敗: {str(e)}")
+
+
+async def get_session_ai_analysis_results(
+    practice_session_id: uuid.UUID,
+    user_id: uuid.UUID,
+    db_session: Session
+) -> Tuple[int, List[Dict[str, Any]]]:
+    """取得練習會話的 AI 分析結果
+    
+    查詢指定練習會話的所有 AI 分析結果，並回傳總數和包含 sentence_id 的分析結果。
+    
+    Args:
+        practice_session_id: 練習會話 ID
+        user_id: 使用者 ID，用於權限驗證
+        db_session: 資料庫會話
+        
+    Returns:
+        Tuple[int, List[Dict[str, Any]]]: (總結果數量, 包含 sentence_id 的分析結果)
+        
+    Raises:
+        AIAnalysisServiceError: 會話不存在或無權限存取時拋出異常
+    """
+    try:
+        logger.info(f"開始查詢會話 {practice_session_id} 的 AI 分析結果")
+        
+        # 1. 驗證練習會話存在且屬於當前使用者
+        practice_session = db_session.get(PracticeSession, practice_session_id)
+        if not practice_session:
+            raise AIAnalysisServiceError(f"找不到練習會話: {practice_session_id}")
+        
+        if practice_session.user_id != user_id:
+            raise AIAnalysisServiceError("無權限存取此練習會話")
+        
+        # 2. 先取得該會話的所有練習記錄
+        practice_records_stmt = select(PracticeRecord).where(
+            PracticeRecord.practice_session_id == practice_session_id
+        )
+        practice_records = db_session.exec(practice_records_stmt).all()
+        
+        if not practice_records:
+            logger.info(f"會話 {practice_session_id} 沒有練習記錄")
+            return 0, []
+        
+        # 建立 practice_record_id 到 sentence_id 的對應
+        record_to_sentence = {
+            record.practice_record_id: record.sentence_id 
+            for record in practice_records
+        }
+        practice_record_ids = list(record_to_sentence.keys())
+        
+        # 3. 查詢相關的 AI 分析任務（透過 task_params 中的 practice_record_id）
         tasks_stmt = select(AIAnalysisTask).where(
             AIAnalysisTask.user_id == user_id,
             AIAnalysisTask.status == TaskStatus.SUCCESS
@@ -275,16 +374,20 @@ async def get_session_ai_analysis_results(
         session_tasks = []
         for task in all_tasks:
             if (task.task_params and 
-                task.task_params.get("practice_record_id") and
-                uuid.UUID(task.task_params["practice_record_id"]) in practice_record_ids):
-                session_tasks.append(task)
+                task.task_params.get("practice_record_id")):
+                try:
+                    task_practice_record_id = uuid.UUID(task.task_params["practice_record_id"])
+                    if task_practice_record_id in practice_record_ids:
+                        session_tasks.append((task, task_practice_record_id))
+                except (ValueError, TypeError):
+                    continue
         
         if not session_tasks:
             logger.info(f"會話 {practice_session_id} 沒有成功的 AI 分析任務")
             return 0, []
         
         # 4. 查詢這些任務的分析結果
-        task_ids = [task.task_id for task in session_tasks]
+        task_ids = [task.task_id for task, _ in session_tasks]
         results_stmt = select(AIAnalysisResult).where(
             AIAnalysisResult.task_id.in_(task_ids)
         ).order_by(AIAnalysisResult.created_at.desc())
@@ -293,11 +396,30 @@ async def get_session_ai_analysis_results(
         
         if not results:
             logger.info(f"會話 {practice_session_id} 沒有 AI 分析結果")
-            return len(session_tasks), []
+            return 0, []
         
-        # 5. 回傳總數和所有結果（已按時間降序排列）
-        logger.info(f"會話 {practice_session_id} 共有 {len(results)} 個 AI 分析結果")
-        return len(results), results
+        # 建立 task_id 到 practice_record_id 的對應
+        task_to_record = {task.task_id: practice_record_id for task, practice_record_id in session_tasks}
+        
+        # 5. 組織返回資料，包含 sentence_id
+        results_with_sentence = []
+        for result in results:
+            practice_record_id = task_to_record.get(result.task_id)
+            sentence_id = record_to_sentence.get(practice_record_id) if practice_record_id else None
+            
+            result_dict = {
+                "result_id": result.result_id,
+                "task_id": result.task_id,
+                "sentence_id": sentence_id,
+                "analysis_result": result.analysis_result,
+                "analysis_model_version": result.analysis_model_version,
+                "processing_time_seconds": result.processing_time_seconds,
+                "created_at": result.created_at
+            }
+            results_with_sentence.append(result_dict)
+        
+        logger.info(f"會話 {practice_session_id} 共有 {len(results_with_sentence)} 個 AI 分析結果")
+        return len(results_with_sentence), results_with_sentence
         
     except AIAnalysisServiceError:
         # 重新拋出業務邏輯異常
@@ -312,6 +434,7 @@ __all__ = [
     "submit_audio_analysis_task", 
     "get_analysis_task_status",
     "get_user_analysis_tasks",
+    "delete_session_ai_analysis_data",
     "get_session_ai_analysis_results",
     "AIAnalysisServiceError"
 ]

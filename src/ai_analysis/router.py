@@ -19,6 +19,7 @@ from src.practice.models import PracticeSession, PracticeSessionStatus
 from src.ai_analysis.models import AIAnalysisTask
 from src.ai_analysis.services.ai_analysis_service import (
     create_analysis_tasks_for_session,
+    delete_session_ai_analysis_data,
     get_session_ai_analysis_results,
     AIAnalysisServiceError
 )
@@ -26,7 +27,9 @@ from src.ai_analysis.schemas import (
     AIAnalysisTriggerRequest,
     AIAnalysisTriggerResponse,
     SessionAIAnalysisResultsResponse,
-    AIAnalysisResultResponse
+    SessionAIAnalysisResultsWithSentenceResponse,
+    AIAnalysisResultResponse,
+    AIAnalysisResultWithSentenceResponse
 )
 
 # 設定日誌
@@ -48,11 +51,13 @@ router = APIRouter(
     主要用途：
     - 為先前沒有 AI 分析任務的已完成練習會話進行分析
     - 為選擇跳過自動 AI 分析的用戶提供手動觸發機會
+    - 重新分析已有 AI 分析結果的會話（會先刪除舊結果）
     
     注意事項：
     - 僅能對已完成的練習會話觸發分析
     - 僅能對屬於當前用戶的會話進行操作  
-    - 如果會話已有 AI 分析任務，將回傳錯誤
+    - 如果會話已有 AI 分析任務，會先自動清除舊資料後重新分析
+    - 支援多次重複觸發分析任務
     """
 )
 async def trigger_ai_analysis_router(
@@ -90,26 +95,20 @@ async def trigger_ai_analysis_router(
                 detail="只能對已完成的練習會話觸發 AI 分析"
             )
         
-        # 3. 檢查是否已有 AI 分析任務（避免重複觸發）
-        # 查詢該用戶的所有AI分析任務，然後在Python中過濾
-        existing_tasks_stmt = select(AIAnalysisTask).where(
-            AIAnalysisTask.user_id == current_user.user_id
-        )
-        existing_tasks = db_session.exec(existing_tasks_stmt).all()
-        
-        # 檢查是否有關聯到此會話的任務
-        session_tasks = []
-        for task in existing_tasks:
-            if (task.task_params and 
-                task.task_params.get("practice_session_id") == str(practice_session_id)):
-                session_tasks.append(task)
-        
-        if session_tasks:
-            logger.warning(f"會話 {practice_session_id} 已有 {len(session_tasks)} 個 AI 分析任務")
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"此練習會話已有 {len(session_tasks)} 個 AI 分析任務，無需重複觸發"
+        # 3. 刪除現有的 AI 分析資料（如果有的話）
+        deleted_count = 0
+        try:
+            deleted_count = await delete_session_ai_analysis_data(
+                practice_session_id=practice_session_id,
+                user_id=current_user.user_id,
+                db_session=db_session
             )
+            if deleted_count > 0:
+                logger.info(f"已刪除會話 {practice_session_id} 的 {deleted_count} 個現有 AI 分析任務")
+        except AIAnalysisServiceError as e:
+            # 如果刪除失敗但不是因為找不到資料，則記錄警告但繼續執行
+            logger.warning(f"刪除現有 AI 分析資料時發生錯誤: {e}")
+            # 繼續執行，允許重新觸發
         
         # 4. 觸發 AI 分析任務
         logger.info(f"開始為會話 {practice_session_id} 手動觸發 AI 分析任務")
@@ -132,11 +131,19 @@ async def trigger_ai_analysis_router(
         
         logger.info(f"成功為會話 {practice_session_id} 建立 {len(created_tasks)} 個 AI 分析任務")
         
+        # 根據是否有刪除舊資料來調整回應訊息
+        if deleted_count > 0:
+            message = f"已清除 {deleted_count} 個舊任務並重新觸發 {len(created_tasks)} 個 AI 分析任務"
+        else:
+            message = f"成功觸發 {len(created_tasks)} 個 AI 分析任務"
+        
         return AIAnalysisTriggerResponse(
-            message=f"成功觸發 {len(created_tasks)} 個 AI 分析任務",
+            message=message,
             practice_session_id=practice_session_id,
             tasks_created=len(created_tasks),
-            task_ids=task_ids
+            task_ids=task_ids,
+            previous_tasks_deleted=deleted_count,
+            is_reanalysis=deleted_count > 0
         )
         
     except HTTPException:
@@ -160,7 +167,7 @@ async def trigger_ai_analysis_router(
 
 @router.get(
     "/results/{practice_session_id}",
-    response_model=SessionAIAnalysisResultsResponse,
+    response_model=SessionAIAnalysisResultsWithSentenceResponse,
     summary="取得練習會話的 AI 分析結果",
     description="""
     取得指定練習會話的 AI 分析結果。
@@ -180,7 +187,7 @@ async def get_session_ai_analysis_results_router(
     practice_session_id: uuid.UUID,
     db_session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)]
-) -> SessionAIAnalysisResultsResponse:
+) -> SessionAIAnalysisResultsWithSentenceResponse:
     """取得練習會話的 AI 分析結果"""
     
     try:
@@ -193,21 +200,22 @@ async def get_session_ai_analysis_results_router(
             db_session=db_session
         )
         
-        # 轉換所有結果為回應格式
+        # 轉換所有結果為回應格式（現在 all_results 是字典列表）
         results_response = []
         for result in all_results:
-            result_response = AIAnalysisResultResponse(
-                result_id=result.result_id,
-                task_id=result.task_id,
-                analysis_result=result.analysis_result,
-                analysis_model_version=result.analysis_model_version,
-                processing_time_seconds=result.processing_time_seconds,
-                created_at=result.created_at
+            result_response = AIAnalysisResultWithSentenceResponse(
+                result_id=result["result_id"],
+                task_id=result["task_id"],
+                sentence_id=result["sentence_id"],
+                analysis_result=result["analysis_result"],
+                analysis_model_version=result["analysis_model_version"],
+                processing_time_seconds=result["processing_time_seconds"],
+                created_at=result["created_at"]
             )
             results_response.append(result_response)
         
         # 回傳完整回應
-        response = SessionAIAnalysisResultsResponse(
+        response = SessionAIAnalysisResultsWithSentenceResponse(
             practice_session_id=practice_session_id,
             total_results=total_results,
             results=results_response
