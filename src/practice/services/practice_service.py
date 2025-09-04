@@ -567,6 +567,13 @@ async def complete_practice_session(
         user_id=user_id,
         db_session=db_session
     )
+    
+    # 檢查練習會話是否已經完成
+    if practice_session.session_status == PracticeSessionStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="練習會話已經完成，無法重複完成"
+        )
 
     # 檢查是否有未完成的錄音
     pending_records_count = db_session.exec(
