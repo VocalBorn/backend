@@ -8,7 +8,7 @@ import uuid
 # from src.course.models import Chapter, Sentence
 
 if TYPE_CHECKING:
-    from src.ai_analysis.models import AIAnalysisTask
+    pass
 
 class PracticeSessionStatus(str, Enum):
     IN_PROGRESS = "in_progress"    # 進行中
@@ -77,11 +77,7 @@ class PracticeRecord(SQLModel, table=True):
 
     # Relationships
     practice_session: PracticeSession = Relationship(back_populates="practice_records")
-    # 注意：為避免循環導入問題，暫時移除與 Sentence 的 Relationship
-    # sentence: Sentence = Relationship(back_populates="practice_records")
     feedback: Optional["PracticeFeedback"] = Relationship(back_populates="practice_record")
-    # 注意：為避免循環導入問題，暫時移除 AI 分析任務的 Relationship
-    # ai_analysis_task: Optional["AIAnalysisTask"] = Relationship(back_populates="practice_record")
 
 
 # 待刪除、棄用
