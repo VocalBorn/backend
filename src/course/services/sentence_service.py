@@ -88,7 +88,7 @@ async def list_sentences(
     limit: int = 10
 ) -> SentenceListResponse:
     """取得語句列表"""
-    query = select(Sentence).where(Sentence.chapter_id == chapter_id)
+    query = select(Sentence).where(Sentence.chapter_id == chapter_id).order_by(Sentence.start_time)
     
     total = len(session.exec(query).all())
     sentences = session.exec(query.offset(skip).limit(limit)).all()
