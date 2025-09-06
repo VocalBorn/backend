@@ -121,6 +121,7 @@ async def delete_situation(
         
     Raises:
         HTTPException: 當情境不存在時拋出 404 錯誤
+        HTTPException: 當情境有關聯章節時拋出 400 錯誤
     """
     from src.course.services.deletion_utils import (
         get_practice_sessions_by_chapter_id,
@@ -132,6 +133,13 @@ async def delete_situation(
     situation = session.get(Situation, situation_id)
     if not situation:
         raise HTTPException(status_code=404, detail="Situation not found")
+    
+    # 檢查是否有關聯的章節
+    if situation.chapters and len(situation.chapters) > 0:
+        raise HTTPException(
+            status_code=400, 
+            detail="Cannot delete situation with existing chapters"
+        )
     
     try:
         # 1. 遍歷所有章節，處理相關資料
