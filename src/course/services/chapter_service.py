@@ -134,19 +134,62 @@ async def delete_chapter(
     chapter_id: int,
     session: Session
 ):
-    """刪除章節"""
+    """刪除章節及其相關資料
+    
+    Args:
+        chapter_id: 要刪除的章節 ID  
+        session: 資料庫會話
+        
+    Raises:
+        HTTPException: 當章節不存在時拋出 404 錯誤
+    """
+    from src.course.services.deletion_utils import (
+        get_practice_sessions_by_chapter_id,
+        get_practice_records_by_sentence_id,
+        delete_practice_sessions_and_related_data,
+        delete_practice_records_and_related_data
+    )
+    
     chapter = session.get(Chapter, chapter_id)
     if not chapter:
         raise HTTPException(status_code=404, detail="Chapter not found")
     
-    if chapter.sentences:
-        raise HTTPException(
-            status_code=400,
-            detail="Cannot delete chapter with existing sentences"
+    try:
+        # 1. 取得所有相關的練習會話 ID
+        practice_session_ids = await get_practice_sessions_by_chapter_id(
+            chapter.chapter_id, session
         )
-    
-    session.delete(chapter)
-    session.commit()
+        
+        # 2. 刪除所有練習會話及其相關資料（包含練習記錄）
+        if practice_session_ids:
+            await delete_practice_sessions_and_related_data(practice_session_ids, session)
+        
+        # 3. 處理可能存在的孤立練習記錄（針對該章節的句子）
+        sentence_practice_record_ids = []
+        for sentence in chapter.sentences:
+            sentence_records = await get_practice_records_by_sentence_id(
+                sentence.sentence_id, session
+            )
+            sentence_practice_record_ids.extend(sentence_records)
+        
+        # 4. 刪除孤立的練習記錄
+        if sentence_practice_record_ids:
+            await delete_practice_records_and_related_data(sentence_practice_record_ids, session)
+        
+        # 5. 刪除所有語句
+        for sentence in chapter.sentences:
+            session.delete(sentence)
+        
+        # 6. 刪除章節本身
+        session.delete(chapter)
+        session.commit()
+        
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"刪除章節失敗: {str(e)}"
+        )
 
 async def reorder_chapters(
     situation_id: int,

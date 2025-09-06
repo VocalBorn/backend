@@ -1,5 +1,4 @@
 import datetime
-from typing import Optional
 from fastapi import HTTPException, UploadFile
 from sqlmodel import Session, select
 
@@ -171,13 +170,46 @@ async def delete_sentence(
     sentence_id: str,
     session: Session
 ):
-    """刪除語句"""
+    """刪除語句及其相關資料
+    
+    Args:
+        sentence_id: 要刪除的語句 ID
+        session: 資料庫會話
+        
+    Raises:
+        HTTPException: 當語句不存在時拋出 404 錯誤
+    """
+    from src.course.services.deletion_utils import (
+        get_practice_records_by_sentence_id,
+        delete_practice_records_and_related_data
+    )
+    
     sentence = session.get(Sentence, sentence_id)
     if not sentence:
         raise HTTPException(status_code=404, detail="Sentence not found")
     
-    session.delete(sentence)
-    session.commit()
+    try:
+        # 1. 取得所有相關的練習記錄 ID
+        practice_record_ids = await get_practice_records_by_sentence_id(
+            sentence.sentence_id, session
+        )
+        
+        # 2. 刪除所有相關的練習記錄及其關聯資料
+        if practice_record_ids:
+            await delete_practice_records_and_related_data(practice_record_ids, session)
+            # 確保練習記錄已經從資料庫中刪除
+            session.flush()
+        
+        # 3. 刪除語句本身
+        session.delete(sentence)
+        session.commit()
+        
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"刪除語句失敗: {str(e)}"
+        )
 
 async def upload_sentence_example_audio(
     sentence_id: str,
