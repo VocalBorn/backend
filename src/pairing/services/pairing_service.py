@@ -87,13 +87,13 @@ def generate_pairing_token(
     session.commit()
     session.refresh(token)
 
-    # 取得 base_url
-    if base_url is None:
-        settings = get_settings()
-        base_url = settings.BASE_URL or "http://localhost:8000"
+    # # 取得 base_url
+    # if base_url is None:
+    #     settings = get_settings()
+    #     base_url = settings.BASE_URL or "http://localhost:8000"
 
     # 生成QR碼資料
-    qr_data = f"{base_url}/pair/{token_code}"
+    qr_data = f"https://vocalborn.r0930514.work/pair_therapist.html?token_code={token_code}"
 
     return PairingTokenWithQR(
         token_id=token.token_id,
