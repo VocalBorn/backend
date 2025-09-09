@@ -169,7 +169,7 @@ class TestGeneratePairingToken:
             
             # Assert
             assert result.token_code == "ABCD1234"
-            assert result.qr_data == "https://example.com/pair/ABCD1234"
+            assert result.qr_data == "https://vocalborn.r0930514.work/pair_therapist.html?token_code=ABCD1234"
             assert result.max_uses == 5
             assert result.current_uses == 0
             assert not result.is_used
@@ -220,7 +220,7 @@ class TestGeneratePairingToken:
             result = generate_pairing_token(mock_db_session, therapist_id, token_create_data)
             
             # Assert
-            assert result.qr_data == "http://localhost:8000/pair/TEST1234"
+            assert result.qr_data == "https://vocalborn.r0930514.work/pair_therapist.html?token_code=TEST1234"
 
     def test_generate_pairing_token_expiry_calculation(
         self, 

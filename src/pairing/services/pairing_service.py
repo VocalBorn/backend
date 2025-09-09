@@ -1,12 +1,10 @@
 import random
-import string
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple
 from uuid import UUID
 
 from fastapi import HTTPException
 from sqlmodel import Session, select
-from src.shared.config.config import get_settings
 
 from src.auth.models import User, UserRole
 from src.pairing.models import PairingToken
