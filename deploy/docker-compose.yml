@@ -45,7 +45,7 @@ services:
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@vocalborn.com
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
-      PGADMIN_CONFIG_SERVER_MODE: False
+      PGADMIN_CONFIG_SERVER_MODE: "False"
     volumes:
       - ${PGADMIN_DATA_PATH}:/var/lib/pgadmin
     ports:
@@ -110,7 +110,7 @@ services:
   celery-worker:
     image: sindy0514/vocalborn-backend:latest
     container_name: vocalborn-celery-worker
-    command: uv run celery -A celery_app.app worker --loglevel=info -c 2
+    command: uv run celery -A celery_app.app worker --loglevel=info -c 3
     environment:
       CELERY_BROKER_URL: redis://redis:6379/0
       CELERY_RESULT_BACKEND: redis://redis:6379/1
@@ -168,7 +168,7 @@ services:
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 30 vocalborn-backend vocalborn-frontend-admin
+    command: --interval 30 vocalborn-backend vocalborn-frontend-admin vocalborn-celery-worker
   # 管理員後台服務
   frontend-admin:
     image: sindy0514/vocalborn-frontend-admin:latest

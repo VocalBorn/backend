@@ -171,6 +171,26 @@ async def unassign_client(
     )
     return {"message": "客戶指派已取消", "success": success}
 
+@router.delete(
+    "/unassign-client/{therapist_id}/{client_id}",
+    summary="取消客戶指派 (管理員功能)",
+    description="""
+    管理員取消指定治療師與指定客戶之間的指派關係。
+    """
+)
+async def unassign_client(
+    therapist_id: UUID,
+    client_id: UUID,
+    current_user: User = Depends(require_permission(Permission.ASSIGN_CLIENTS)),
+    session: Session = Depends(get_session)
+):
+    success = therapist_service.unassign_client_from_therapist(
+        session,
+        therapist_id,
+        client_id
+    )
+    return {"message": "客戶指派已取消", "success": success}
+
 @router.get(
     "/all", 
     response_model=List[UserWithProfileResponse],
