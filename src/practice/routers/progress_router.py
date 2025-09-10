@@ -127,7 +127,7 @@ async def get_courses_progress(
 async def get_progress_overview(
     db_session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(get_current_user)],
-    recent_days: Annotated[int, Query(description="近期統計天數", ge=1, le=30)] = 7
+    recent_days: Annotated[int, Query(description="近期統計天數", ge=1, le=30)] = 30
 ) -> UserProgressOverviewResponse:
     """查詢使用者進度總覽"""
     try:

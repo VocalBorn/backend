@@ -53,17 +53,10 @@ jobs:
           echo "ENVIRONMENT=test" >> $GITHUB_ENV
           echo "DEBUG=true" >> $GITHUB_ENV
 
-      - name: Run unit tests
+      - name: Run unit tests with coverage
         run: |
-          # 執行單元測試（忽略需要外部服務的測試）
-          uv run pytest tests/ -v --disable-warnings \
-            --ignore=tests/storage/test_audio_storage_service.py \
-            --ignore=tests/therapist/test_therapist_service.py \
-            -k "not test_send_email"
-
-      - name: Generate test coverage report
-        run: |
-          uv run coverage run -m pytest tests/ \
+          # 執行單元測試並產生覆蓋率報告（忽略需要外部服務的測試）
+          uv run coverage run -m pytest tests/ -v --disable-warnings \
             --ignore=tests/storage/test_audio_storage_service.py \
             --ignore=tests/therapist/test_therapist_service.py \
             -k "not test_send_email"

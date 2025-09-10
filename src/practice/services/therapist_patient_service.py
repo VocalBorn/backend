@@ -12,7 +12,7 @@ from sqlalchemy.orm import selectinload
 
 from src.auth.models import User, UserRole
 from src.course.models import Chapter, Sentence
-from src.practice.models import PracticeSession, PracticeRecord, PracticeFeedback, PracticeRecordStatus, PracticeSessionStatus
+from src.practice.models import PracticeSession, PracticeRecord, PracticeFeedback, PracticeRecordStatus, PracticeSessionStatus, PracticeSessionFeedback
 from src.practice.schemas import (
     TherapistPatientOverviewResponse,
     TherapistPatientsOverviewListResponse,
@@ -95,11 +95,14 @@ async def get_therapist_patients_overview(
         session_results = session.exec(practice_sessions_query).all()
         
         session_progress = []
-        total_pending_feedback = 0
-        completed_sessions = 0
+        sessions_pending_feedback = 0
+        total_feedback_completed = 0
+        
+        # 直接使用資料庫中的 session_status，因為查詢已經篩選了 COMPLETED 狀態
+        completed_sessions = len(session_results)
         
         for practice_session, chapter in session_results:
-            # 統計該會話的練習記錄
+            # 統計該會話的練習記錄（保留語句統計以計算完成率）
             session_stats_query = (
                 select(
                     func.count(PracticeRecord.practice_record_id).label("total_sentences"),
@@ -112,37 +115,32 @@ async def get_therapist_patients_overview(
                             ]), 1),
                             else_=None
                         )
-                    ).label("completed_sentences"),
-                    func.count(
-                        case(
-                            (
-                                and_(
-                                    PracticeRecord.record_status == PracticeRecordStatus.RECORDED,
-                                    PracticeFeedback.feedback_id.is_(None)
-                                ), 1
-                            ),
-                            else_=None
-                        )
-                    ).label("pending_feedback")
+                    ).label("completed_sentences")
                 )
                 .select_from(PracticeRecord)
-                .outerjoin(PracticeFeedback, PracticeRecord.practice_record_id == PracticeFeedback.practice_record_id)
                 .where(PracticeRecord.practice_session_id == practice_session.practice_session_id)
             )
             
             stats_result = session.exec(session_stats_query).first()
+            
+            # 檢查該會話是否已有治療師回饋
+            has_feedback = session.exec(
+                select(func.count(PracticeSessionFeedback.session_feedback_id))
+                .where(PracticeSessionFeedback.practice_session_id == practice_session.practice_session_id)
+            ).one() > 0
+            
+            feedback_status = "completed" if has_feedback else "pending"
+            
+            if has_feedback:
+                total_feedback_completed += 1
+            else:
+                sessions_pending_feedback += 1
             
             if stats_result:
                 completion_rate = (
                     (stats_result.completed_sentences / stats_result.total_sentences * 100) 
                     if stats_result.total_sentences > 0 else 0.0
                 )
-                
-                # 如果完成率 > 80% 視為已完成會話
-                if completion_rate > 80:
-                    completed_sessions += 1
-                
-                total_pending_feedback += stats_result.pending_feedback
                 
                 session_progress.append(
                     PatientSessionProgress(
@@ -156,7 +154,8 @@ async def get_therapist_patients_overview(
                         total_sentences=stats_result.total_sentences,
                         completed_sentences=stats_result.completed_sentences,
                         completion_rate=completion_rate,
-                        pending_feedback=stats_result.pending_feedback,
+                        has_therapist_feedback=has_feedback,
+                        feedback_status=feedback_status,
                         practice_date=practice_session.begin_time or practice_session.created_at
                     )
                 )
@@ -172,7 +171,8 @@ async def get_therapist_patients_overview(
                 total_practice_sessions=len(session_results),
                 completed_practice_sessions=completed_sessions,
                 session_progress=session_progress,
-                total_pending_feedback=total_pending_feedback
+                sessions_pending_feedback=sessions_pending_feedback,
+                total_feedback_completed=total_feedback_completed
             )
         )
     

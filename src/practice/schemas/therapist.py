@@ -18,7 +18,8 @@ class PatientSessionProgress(BaseModel):
     total_sentences: int
     completed_sentences: int
     completion_rate: float
-    pending_feedback: int
+    has_therapist_feedback: bool  # 是否已有治療師回饋
+    feedback_status: str  # 回饋狀態: "pending" | "completed"
     practice_date: datetime  # 練習日期（使用 begin_time）
 
     model_config = ConfigDict(
@@ -34,7 +35,8 @@ class PatientSessionProgress(BaseModel):
                 "total_sentences": 20,
                 "completed_sentences": 18,
                 "completion_rate": 90.0,
-                "pending_feedback": 2,
+                "has_therapist_feedback": False,
+                "feedback_status": "pending",
                 "practice_date": "2025-07-20T14:00:00Z"
             }
         }
@@ -48,7 +50,8 @@ class TherapistPatientOverviewResponse(BaseModel):
     total_practice_sessions: int
     completed_practice_sessions: int
     session_progress: List[PatientSessionProgress]
-    total_pending_feedback: int
+    sessions_pending_feedback: int  # 待回饋的練習會話數量
+    total_feedback_completed: int   # 已完成回饋的練習會話數量
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -69,10 +72,12 @@ class TherapistPatientOverviewResponse(BaseModel):
                     "total_sentences": 20,
                     "completed_sentences": 18,
                     "completion_rate": 90.0,
-                    "pending_feedback": 2,
+                    "has_therapist_feedback": False,
+                    "feedback_status": "pending",
                     "practice_date": "2025-07-20T14:00:00Z"
                 }],
-                "total_pending_feedback": 3
+                "sessions_pending_feedback": 3,
+                "total_feedback_completed": 20
             }
         }
     )
@@ -93,7 +98,8 @@ class TherapistPatientsOverviewListResponse(BaseModel):
                     "total_practice_sessions": 25,
                     "completed_practice_sessions": 23,
                     "session_progress": [],
-                    "total_pending_feedback": 3
+                    "sessions_pending_feedback": 3,
+                    "total_feedback_completed": 20
                 }]
             }
         }
