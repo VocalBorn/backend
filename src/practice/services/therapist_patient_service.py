@@ -281,7 +281,7 @@ async def get_patient_practice_sessions(
             select(PracticeRecord, Sentence)
             .join(Sentence, PracticeRecord.sentence_id == Sentence.sentence_id)
             .where(and_(*record_conditions))
-            .order_by(Sentence.sentence_id)
+            .order_by(Sentence.start_time.asc().nullslast())
         )
         
         record_results = session.exec(practice_records_query).all()
