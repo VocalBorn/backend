@@ -5,10 +5,12 @@
 
 import uuid
 import logging
+import io
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
 from fastapi import UploadFile, HTTPException, status
 from sqlmodel import Session
+from pydub import AudioSegment
 
 from .storage_factory import get_practice_recording_storage
 from .storage_service import StorageServiceError
@@ -28,6 +30,40 @@ class PracticeRecordingService:
         if self._storage_service is None:
             self._storage_service = get_practice_recording_storage()
         return self._storage_service
+
+    def _get_audio_duration(self, audio_file: UploadFile) -> float:
+        """
+        量測音訊檔案時長
+
+        Args:
+            audio_file: 音訊檔案
+
+        Returns:
+            float: 音訊時長（秒）
+
+        Raises:
+            ValueError: 當音訊檔案格式不支援或損壞時
+        """
+        try:
+            # 讀取檔案內容
+            audio_content = audio_file.file.read()
+
+            # 重置檔案指標，確保後續上傳可以正常讀取
+            audio_file.file.seek(0)
+
+            # 使用 pydub 載入音訊
+            audio_segment = AudioSegment.from_file(io.BytesIO(audio_content))
+
+            # 回傳時長（轉換為秒）
+            duration_seconds = len(audio_segment) / 1000.0
+
+            logger.info(f"音訊檔案時長: {duration_seconds:.2f} 秒")
+
+            return duration_seconds
+
+        except Exception as e:
+            logger.error(f"量測音訊時長失敗: {str(e)}")
+            raise ValueError(f"無法量測音訊檔案時長: {str(e)}")
     
     def upload_practice_recording(
         self,
@@ -51,7 +87,9 @@ class PracticeRecordingService:
         try:
             # 使用練習記錄ID作為檔案標識
             recording_id = practice_record_id
-            
+
+            # 量測音訊時長
+            audio_duration = self._get_audio_duration(audio_file)
             # 上傳檔案
             object_name = self.storage_service.upload_practice_audio(
                 audio_file, user_id, recording_id
@@ -67,8 +105,10 @@ class PracticeRecordingService:
             if practice_record:
                 # 更新現有記錄
                 practice_record.audio_path = object_name
+                practice_record.audio_duration = audio_duration
                 practice_record.file_size = audio_file.size
                 practice_record.content_type = audio_file.content_type
+                practice_record.recorded_at = datetime.now()
                 practice_record.updated_at = datetime.now()
                 
                 db_session.add(practice_record)
@@ -83,11 +123,18 @@ class PracticeRecordingService:
             return {
                 "recording_id": recording_id,
                 "object_name": object_name,
+                "audio_duration": audio_duration,
                 "file_size": audio_file.size,
                 "content_type": audio_file.content_type,
                 "status": "uploaded"
             }
             
+        except ValueError as e:
+            logger.error(f"音訊檔案處理失敗: {str(e)}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"音訊檔案處理失敗: {str(e)}"
+            )
         except StorageServiceError as e:
             logger.error(f"練習錄音上傳失敗: {str(e)}")
             raise HTTPException(

@@ -123,7 +123,7 @@ async def upload_or_update_recording(
     await update_practice_audio_info(
         practice_record_id=practice_record.practice_record_id,
         audio_path=upload_result["object_name"],
-        audio_duration=None,  # TODO: 從音訊檔案中提取時長
+        audio_duration=upload_result["audio_duration"],
         file_size=upload_result["file_size"],
         content_type=upload_result["content_type"],
         session=session
