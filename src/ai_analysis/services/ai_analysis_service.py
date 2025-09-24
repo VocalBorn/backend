@@ -321,32 +321,24 @@ async def get_session_ai_analysis_results(
     db_session: Session
 ) -> Tuple[int, List[Dict[str, Any]]]:
     """取得練習會話的 AI 分析結果
-    
+
     查詢指定練習會話的所有 AI 分析結果，並回傳總數和包含 sentence_id 的分析結果。
-    
+
     Args:
         practice_session_id: 練習會話 ID
-        user_id: 使用者 ID，用於權限驗證
+        user_id: 使用者 ID（用於查詢該使用者的分析任務）
         db_session: 資料庫會話
-        
+
     Returns:
         Tuple[int, List[Dict[str, Any]]]: (總結果數量, 包含 sentence_id 的分析結果)
-        
+
     Raises:
-        AIAnalysisServiceError: 會話不存在或無權限存取時拋出異常
+        AIAnalysisServiceError: 資料查詢錯誤時拋出異常
     """
     try:
         logger.info(f"開始查詢會話 {practice_session_id} 的 AI 分析結果")
-        
-        # 1. 驗證練習會話存在且屬於當前使用者
-        practice_session = db_session.get(PracticeSession, practice_session_id)
-        if not practice_session:
-            raise AIAnalysisServiceError(f"找不到練習會話: {practice_session_id}")
-        
-        if practice_session.user_id != user_id:
-            raise AIAnalysisServiceError("無權限存取此練習會話")
-        
-        # 2. 先取得該會話的所有練習記錄
+
+        # 1. 取得該會話的所有練習記錄
         practice_records_stmt = select(PracticeRecord).where(
             PracticeRecord.practice_session_id == practice_session_id
         )
@@ -363,7 +355,7 @@ async def get_session_ai_analysis_results(
         }
         practice_record_ids = list(record_to_sentence.keys())
         
-        # 3. 查詢相關的 AI 分析任務（透過 task_params 中的 practice_record_id）
+        # 2. 查詢相關的 AI 分析任務（透過 task_params 中的 practice_record_id）
         tasks_stmt = select(AIAnalysisTask).where(
             AIAnalysisTask.user_id == user_id,
             AIAnalysisTask.status == TaskStatus.SUCCESS
@@ -386,7 +378,7 @@ async def get_session_ai_analysis_results(
             logger.info(f"會話 {practice_session_id} 沒有成功的 AI 分析任務")
             return 0, []
         
-        # 4. 查詢這些任務的分析結果
+        # 3. 查詢這些任務的分析結果
         task_ids = [task.task_id for task, _ in session_tasks]
         results_stmt = select(AIAnalysisResult).where(
             AIAnalysisResult.task_id.in_(task_ids)
@@ -401,7 +393,7 @@ async def get_session_ai_analysis_results(
         # 建立 task_id 到 practice_record_id 的對應
         task_to_record = {task.task_id: practice_record_id for task, practice_record_id in session_tasks}
         
-        # 5. 組織返回資料，包含 sentence_id
+        # 4. 組織返回資料，包含 sentence_id
         results_with_sentence = []
         for result in results:
             practice_record_id = task_to_record.get(result.task_id)

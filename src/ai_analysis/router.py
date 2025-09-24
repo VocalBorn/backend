@@ -13,7 +13,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select, and_
 
 from src.shared.database.database import get_session
-from src.auth.services.permission_service import get_current_user
+from src.auth.services.permission_service import get_current_user, get_session_access_permission
 from src.auth.models import User
 from src.practice.models import PracticeSession, PracticeSessionStatus
 from src.ai_analysis.models import AIAnalysisTask
@@ -186,17 +186,17 @@ async def trigger_ai_analysis_router(
 async def get_session_ai_analysis_results_router(
     practice_session_id: uuid.UUID,
     db_session: Annotated[Session, Depends(get_session)],
-    current_user: Annotated[User, Depends(get_current_user)]
+    session_access: Annotated[PracticeSession, Depends(get_session_access_permission)]
 ) -> SessionAIAnalysisResultsWithSentenceResponse:
     """取得練習會話的 AI 分析結果"""
-    
+
     try:
-        logger.info(f"用戶 {current_user.user_id} 請求會話 {practice_session_id} 的 AI 分析結果")
-        
+        logger.info(f"用戶 {session_access.user_id} 請求會話 {practice_session_id} 的 AI 分析結果")
+
         # 呼叫服務層函數取得分析結果
         total_results, all_results = await get_session_ai_analysis_results(
             practice_session_id=practice_session_id,
-            user_id=current_user.user_id,
+            user_id=session_access.user_id,
             db_session=db_session
         )
         

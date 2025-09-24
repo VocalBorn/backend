@@ -1,4 +1,5 @@
-from typing import List, Optional, TYPE_CHECKING
+import uuid
+from typing import List, Optional, TYPE_CHECKING, Annotated
 from fastapi import HTTPException, Depends
 from sqlmodel import Session, select
 from functools import wraps
@@ -183,3 +184,59 @@ require_admin = RequireAdmin
 require_therapist = RequireTherapist
 require_client = RequireClient
 require_client_or_therapist = RequireClientOrTherapist
+
+
+async def get_session_access_permission(
+    practice_session_id: uuid.UUID,
+    current_user: Annotated["User", Depends(get_current_user)],
+    db_session: Annotated[Session, Depends(get_session)]
+):
+    """檢查使用者是否有權限存取指定的練習會話
+
+    檢查邏輯：
+    1. 驗證練習會話是否存在
+    2. 檢查是否為會話擁有者（病患本人）
+    3. 檢查是否為授權治療師
+
+    Args:
+        practice_session_id: 練習會話 ID
+        current_user: 當前登入使用者
+        db_session: 資料庫會話
+
+    Returns:
+        PracticeSession: 驗證通過的練習會話物件
+
+    Raises:
+        HTTPException: 當會話不存在或無權限存取時
+    """
+    from src.practice.models import PracticeSession
+    from src.therapist.models import TherapistClient
+
+    # 1. 查詢練習會話是否存在
+    practice_session = db_session.get(PracticeSession, practice_session_id)
+    if not practice_session:
+        raise HTTPException(
+            status_code=404,
+            detail="找不到練習會話"
+        )
+
+    # 2. 檢查是否為會話擁有者
+    if practice_session.user_id == current_user.user_id:
+        return practice_session
+
+    # 3. 檢查是否為授權治療師
+    therapist_client_stmt = select(TherapistClient).where(
+        TherapistClient.therapist_id == current_user.user_id,
+        TherapistClient.client_id == practice_session.user_id,
+        TherapistClient.is_active == True
+    )
+    therapist_client_relation = db_session.exec(therapist_client_stmt).first()
+
+    if therapist_client_relation:
+        return practice_session
+
+    # 4. 無權限存取
+    raise HTTPException(
+        status_code=403,
+        detail="無權限存取此練習會話"
+    )
