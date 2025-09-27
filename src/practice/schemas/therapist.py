@@ -52,6 +52,7 @@ class TherapistPatientOverviewResponse(BaseModel):
     session_progress: List[PatientSessionProgress]
     sessions_pending_feedback: int  # 待回饋的練習會話數量
     total_feedback_completed: int   # 已完成回饋的練習會話數量
+    avg_accuracy_last_30_days: Optional[float]  # 最近30天AI分析平均準確度（分數格式0-100）
 
     model_config = ConfigDict(
         json_schema_extra={
@@ -77,7 +78,8 @@ class TherapistPatientOverviewResponse(BaseModel):
                     "practice_date": "2025-07-20T14:00:00Z"
                 }],
                 "sessions_pending_feedback": 3,
-                "total_feedback_completed": 20
+                "total_feedback_completed": 20,
+                "avg_accuracy_last_30_days": 75.5
             }
         }
     )
@@ -99,7 +101,8 @@ class TherapistPatientsOverviewListResponse(BaseModel):
                     "completed_practice_sessions": 23,
                     "session_progress": [],
                     "sessions_pending_feedback": 3,
-                    "total_feedback_completed": 20
+                    "total_feedback_completed": 20,
+                    "avg_accuracy_last_30_days": 75.5
                 }]
             }
         }

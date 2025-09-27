@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Optional
 from fastapi import APIRouter, Depends
 from sqlmodel import Session
 import uuid
@@ -48,6 +48,7 @@ router = APIRouter(
     description="""
     取得所有患者的練習章節與進度概覽。
     這是一個新增的重點功能，讓治療師可以一次檢視所有患者的練習狀況。
+    包含最近30天AI分析平均準確度（分數格式0-100），協助治療師快速評估患者進步情況。
     此端點僅限治療師使用。
     """
 )
@@ -56,7 +57,7 @@ async def get_therapist_patients_overview_route(
     current_user: Annotated[User, Depends(require_therapist)],
     skip: int = 0,
     limit: int = 20,
-    search: str = None
+    search: Optional[str] = None
 ):
     return await get_therapist_patients_overview(
         therapist_id=current_user.user_id,
@@ -81,7 +82,7 @@ async def get_patient_practices_route(
     patient_id: uuid.UUID,
     session: Annotated[Session, Depends(get_session)],
     current_user: Annotated[User, Depends(require_therapist)],
-    practice_session_id: uuid.UUID = None,
+    practice_session_id: Optional[uuid.UUID] = None,
     pending_feedback_only: bool = False
 ):
     return await get_patient_practice_sessions(

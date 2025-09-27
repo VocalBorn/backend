@@ -13,6 +13,7 @@ from sqlalchemy.orm import selectinload
 from src.auth.models import User, UserRole
 from src.course.models import Chapter, Sentence
 from src.practice.models import PracticeSession, PracticeRecord, PracticeFeedback, PracticeRecordStatus, PracticeSessionStatus, PracticeSessionFeedback
+from src.ai_analysis.models import AIAnalysisTask, AIAnalysisResult, TaskStatus
 from src.practice.schemas import (
     TherapistPatientOverviewResponse,
     TherapistPatientsOverviewListResponse,
@@ -24,6 +25,107 @@ from src.practice.schemas import (
 )
 from src.therapist.models import TherapistClient
 from src.storage.practice_recording_service import PracticeRecordingService
+
+
+async def get_patient_avg_accuracy_last_30_days(
+    patient_id: UUID,
+    session: Session
+) -> Optional[float]:
+    """
+    計算患者最近30天的AI分析平均準確度
+
+    Args:
+        patient_id: 患者ID
+        session: 資料庫會話
+
+    Returns:
+        Optional[float]: 平均準確度（0-100分數格式），如果沒有資料則回傳None
+    """
+    from datetime import datetime, timedelta
+
+    # 計算30天前的日期
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+
+    try:
+        # 查詢最近30天患者的練習會話及其相關AI分析結果
+        # 1. 先找出最近30天的練習會話
+        practice_sessions_query = (
+            select(PracticeSession.practice_session_id)
+            .where(
+                and_(
+                    PracticeSession.user_id == patient_id,
+                    PracticeSession.session_status == PracticeSessionStatus.COMPLETED,
+                    PracticeSession.begin_time >= thirty_days_ago
+                )
+            )
+        )
+
+        practice_session_ids = session.exec(practice_sessions_query).all()
+
+        if not practice_session_ids:
+            return None
+
+        # 2. 找出這些會話的練習記錄
+        practice_records_query = (
+            select(PracticeRecord.practice_record_id)
+            .where(
+                PracticeRecord.practice_session_id.in_(practice_session_ids)
+            )
+        )
+
+        practice_record_ids = session.exec(practice_records_query).all()
+
+        if not practice_record_ids:
+            return None
+
+        # 3. 查詢相關的成功AI分析任務和結果
+        ai_tasks_query = (
+            select(AIAnalysisTask, AIAnalysisResult)
+            .join(AIAnalysisResult, AIAnalysisTask.task_id == AIAnalysisResult.task_id)
+            .where(
+                and_(
+                    AIAnalysisTask.user_id == patient_id,
+                    AIAnalysisTask.status == TaskStatus.SUCCESS
+                )
+            )
+        )
+
+        ai_results = session.exec(ai_tasks_query).all()
+
+        if not ai_results:
+            return None
+
+        # 4. 篩選與最近30天練習記錄相關的AI分析結果
+        valid_accuracy_scores = []
+
+        for task, result in ai_results:
+            # 檢查task_params中的practice_record_id是否在我們的列表中
+            if (task.task_params and
+                task.task_params.get("practice_record_id")):
+                try:
+                    task_practice_record_id = UUID(task.task_params["practice_record_id"])
+                    if task_practice_record_id in practice_record_ids:
+                        # 從分析結果中提取index值（綜合評分指標）
+                        analysis_data = result.analysis_result
+                        if isinstance(analysis_data, dict) and "index" in analysis_data:
+                            index_score = float(analysis_data["index"])
+                            # 轉換為百分比格式
+                            accuracy_percentage = index_score * 100
+                            valid_accuracy_scores.append(accuracy_percentage)
+                except (ValueError, TypeError, KeyError):
+                    continue
+
+        # 5. 計算平均準確度
+        if valid_accuracy_scores:
+            avg_accuracy = sum(valid_accuracy_scores) / len(valid_accuracy_scores)
+            return round(avg_accuracy, 1)  # 保留一位小數
+
+        return None
+
+    except Exception as e:
+        # 記錄錯誤但不中斷主要流程
+        print(f"計算患者 {patient_id} 的AI分析平均準確度時發生錯誤: {e}")
+        return None
 
 
 async def get_therapist_patients_overview(
@@ -162,7 +264,13 @@ async def get_therapist_patients_overview(
         
         # 取得患者最後練習時間
         last_practice_date = session_results[0][0].begin_time if session_results else None
-        
+
+        # 計算患者最近30天AI分析平均準確度
+        avg_accuracy_last_30_days = await get_patient_avg_accuracy_last_30_days(
+            patient_id=patient.user_id,
+            session=session
+        )
+
         overview_responses.append(
             TherapistPatientOverviewResponse(
                 patient_id=patient.user_id,
@@ -172,7 +280,8 @@ async def get_therapist_patients_overview(
                 completed_practice_sessions=completed_sessions,
                 session_progress=session_progress,
                 sessions_pending_feedback=sessions_pending_feedback,
-                total_feedback_completed=total_feedback_completed
+                total_feedback_completed=total_feedback_completed,
+                avg_accuracy_last_30_days=avg_accuracy_last_30_days
             )
         )
     
