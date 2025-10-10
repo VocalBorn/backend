@@ -18,6 +18,7 @@ from src.practice.schemas.progress import (
     CourseProgressResponse,
     UserProgressOverviewResponse
 )
+from src.practice.services.therapist_patient_service import get_patient_avg_accuracy_last_30_days
 
 logger = logging.getLogger(__name__)
 
@@ -245,11 +246,16 @@ async def get_user_progress_overview(
         recent_practice = await get_recent_practice_stats(user_id, db_session, recent_days)
         total_sessions = await get_total_practice_sessions(user_id, db_session)
         course_progress = await get_course_progress(user_id, db_session)
+        avg_accuracy_last_30_days = await get_patient_avg_accuracy_last_30_days(
+            patient_id=user_id,
+            session=db_session
+        )
         
         return UserProgressOverviewResponse(
             recent_practice=recent_practice,
             total_sessions=total_sessions,
-            course_progress=course_progress
+            course_progress=course_progress,
+            avg_accuracy_last_30_days=avg_accuracy_last_30_days
         )
         
     except Exception as e:

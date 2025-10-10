@@ -93,6 +93,7 @@ class UserProgressOverviewResponse(BaseModel):
     recent_practice: RecentPracticeResponse
     total_sessions: TotalSessionsResponse
     course_progress: CourseProgressResponse
+    avg_accuracy_last_30_days: Optional[float] = None  # 最近30天AI分析平均準確度 (0-100)
     
     model_config = ConfigDict(
         json_schema_extra={
@@ -113,7 +114,8 @@ class UserProgressOverviewResponse(BaseModel):
                     "total_courses": 20,
                     "completed_courses": 12,
                     "completion_percentage": 60.0
-                }
+                },
+                "avg_accuracy_last_30_days": 85.5
             }
         }
     )
