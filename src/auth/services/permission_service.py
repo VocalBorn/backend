@@ -35,6 +35,12 @@ class Permission:
     MANAGE_USERS = "manage_users"                       # 管理用戶
     VIEW_ALL_USERS = "view_all_users"                   # 檢視所有用戶
 
+    # 聊天相關權限
+    CHAT_WITH_THERAPIST = "chat_with_therapist"         # 與治療師聊天（患者）
+    CHAT_WITH_CLIENT = "chat_with_client"               # 與患者聊天（治療師）
+    VIEW_CHAT_HISTORY = "view_chat_history"             # 檢視聊天歷史
+    MODERATE_CHATS = "moderate_chats"                   # 監管聊天（管理員）
+
 
 class RolePermissions:
     """角色權限映射"""
@@ -44,6 +50,8 @@ class RolePermissions:
         Permission.VIEW_COURSES,
         Permission.VIEW_PRACTICE_RECORDS,
         Permission.CREATE_PRACTICE_RECORDS,
+        Permission.CHAT_WITH_THERAPIST,
+        Permission.VIEW_CHAT_HISTORY,
     ]
     
     # 語言治療師權限：檢視課程且與使用者溝通
@@ -53,6 +61,8 @@ class RolePermissions:
         Permission.MANAGE_THERAPIST_PROFILE,
         Permission.VIEW_THERAPIST_PROFILE,
         Permission.VIEW_ASSIGNED_CLIENTS,
+        Permission.CHAT_WITH_CLIENT,
+        Permission.VIEW_CHAT_HISTORY,
     ]
     
     # 管理員權限：對課程進行編輯
@@ -68,6 +78,8 @@ class RolePermissions:
         Permission.VIEW_THERAPIST_PROFILE,
         Permission.ASSIGN_CLIENTS,
         Permission.VIEW_ASSIGNED_CLIENTS,
+        Permission.MODERATE_CHATS,
+        Permission.VIEW_CHAT_HISTORY,
     ]
     
     @classmethod

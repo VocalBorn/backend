@@ -33,6 +33,7 @@ from src.pairing.models import PairingToken
 from src.verification.models import TherapistApplication, UploadedDocument
 from src.ai_analysis.models import AIAnalysisTask, AIAnalysisResult, TaskStatus
 from src.checkin.models import DailyCheckIn
+from src.chat.models import ChatRoom, ChatMessage
 
 # 設置命名約定
 convention = {
