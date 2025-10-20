@@ -24,6 +24,24 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+def decode_token(token: str) -> dict:
+    """解碼 JWT token 並回傳 payload
+
+    Args:
+        token: JWT token 字串
+
+    Returns:
+        dict: JWT payload
+
+    Raises:
+        JWTError: 當 token 無效時
+    """
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError as e:
+        raise JWTError(f"Invalid token: {str(e)}")
+
 async def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> str:
     try:
         token = credentials.credentials
