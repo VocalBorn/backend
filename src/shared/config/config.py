@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     
     # 安全設定
     SECRET_KEY: str = Field(default="test-secret-key-do-not-use-in-production", description="應用程式密鑰", min_length=5)
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, description="存取令牌過期時間（分鐘）")
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=1440, description="存取令牌過期時間（分鐘）")
     REFRESH_TOKEN_EXPIRE_DAYS: int = Field(default=7, description="刷新令牌過期時間（天）")
     
     # 資料庫設定
