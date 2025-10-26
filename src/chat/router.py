@@ -92,7 +92,7 @@ async def get_rooms_router(
     "/rooms",
     response_model=ChatRoomResponse,
     summary="建立或取得聊天室",
-    description="根據治療師建立聊天室，若已存在則取得現有聊天室",
+    description="患者或治療師都可以建立聊天室，指定對方 ID。若已存在則取得現有聊天室",
     responses={
         200: {
             "description": "成功建立或取得聊天室",
@@ -113,7 +113,7 @@ async def get_rooms_router(
                 }
             }
         },
-        400: {"description": "請求錯誤 - 參數不正確"},
+        400: {"description": "請求錯誤 - 參數不正確或缺少必填欄位"},
         401: {"description": "未驗證 - 需要有效的 JWT token"},
         403: {"description": "無權限 - 未配對或無法建立聊天室"},
         404: {"description": "使用者不存在"}
@@ -127,14 +127,15 @@ async def create_room_router(
     """
     建立或取得聊天室
 
-    客戶端由患者建立聊天室，指定聊天室的治療師。若聊天室已存在則直接回傳。
+    患者或治療師都可以建立聊天室，指定對方的 ID。若聊天室已存在則直接回傳。
 
-    - **therapist_id**: 治療師 ID（必填，僅患者使用）
+    - **therapist_id**: 治療師 ID（患者建立聊天室時使用，必填）
+    - **client_id**: 患者 ID（治療師建立聊天室時使用，必填）
 
     權限限制：
-    - 患者只能與已配對的治療師建立聊天室
-    - 治療師不能主動與患者建立聊天室
-    - 治療師必須等待患者發起聊天室
+    - 只能與已配對的對象建立聊天室
+    - 患者需提供 therapist_id
+    - 治療師需提供 client_id
 
     需要有效的 JWT 驗證。
     """
@@ -142,16 +143,23 @@ async def create_room_router(
 
     # 根據當前使用者角色決定 client_id 和 therapist_id
     if current_user.role == UserRole.CLIENT:
+        # 患者建立聊天室，需要提供 therapist_id
+        if not room_data.therapist_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="患者建立聊天室時必須提供 therapist_id"
+            )
         client_id = current_user.user_id
         therapist_id = room_data.therapist_id
     elif current_user.role == UserRole.THERAPIST:
-        # 治療師不能主動建立聊天室，需要由患者建立
-        # 因此這裡應該拋出錯誤，或者需要額外的 client_id
-        # 目前 API 設計為患者主動建立
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="治療師無法建立聊天室，請由患者主動發起聯繫"
-        )
+        # 治療師建立聊天室，需要提供 client_id
+        if not room_data.client_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="治療師建立聊天室時必須提供 client_id"
+            )
+        client_id = room_data.client_id
+        therapist_id = current_user.user_id
     else:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

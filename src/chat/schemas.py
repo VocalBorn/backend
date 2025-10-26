@@ -12,8 +12,13 @@ class ChatRoomBase(BaseModel):
     pass
 
 class ChatRoomCreate(ChatRoomBase):
-    """建立聊天室請求 Schema"""
-    therapist_id: uuid.UUID = Field(..., description="治療師 ID")
+    """建立聊天室請求 Schema
+
+    患者建立聊天室時需提供 therapist_id
+    治療師建立聊天室時需提供 client_id
+    """
+    therapist_id: Optional[uuid.UUID] = Field(None, description="治療師 ID(患者建立聊天室時使用)")
+    client_id: Optional[uuid.UUID] = Field(None, description="患者 ID(治療師建立聊天室時使用)")
 
 class ChatRoomResponse(BaseModel):
     """聊天室回應 Schema"""
