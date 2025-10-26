@@ -124,6 +124,7 @@ services:
       MINIO_ACCESS_KEY: minio_admin
       MINIO_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       MINIO_SECURE: ${MINIO_SECURE}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
     depends_on:
       redis:
         condition: service_healthy

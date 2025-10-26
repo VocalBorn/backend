@@ -24,7 +24,7 @@ from src.chat.schemas import (
     WSMessageRead,
     WSError,
 )
-from src.chat.models import MessageType
+from src.chat.models import MessageType, ChatMessage
 
 logger = logging.getLogger(__name__)
 
@@ -240,11 +240,15 @@ async def handle_send_message(
             # 自動標記為已送達
             await mark_message_as_delivered(session, message_response.message_id)
 
+            # 重新整理訊息以取得更新後的 delivered_at
+            session.refresh(session.get(ChatMessage, message_response.message_id))
+            updated_message = session.get(ChatMessage, message_response.message_id)
+
             # 通知發送者訊息已送達
             delivered_notification = WSMessageDelivered(
                 type=WebSocketMessageType.MESSAGE_DELIVERED,
                 message_id=message_response.message_id,
-                delivered_at=message_response.delivered_at
+                delivered_at=updated_message.delivered_at if updated_message else datetime.datetime.now()
             )
             await ws_manager.send_personal_message(
                 message=delivered_notification.model_dump(),
