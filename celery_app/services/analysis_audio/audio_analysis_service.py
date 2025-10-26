@@ -303,7 +303,7 @@ def classify_level(idx: float) -> int:
 def generate_gemini_suggestion(data: dict, api_key: str) -> str:
     try:
         genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("models/gemini-1.5-flash-latest")
+        model = genai.GenerativeModel("models/gemini-2.5-flash")
 
         level = data['level']
         sim = data['similarity']
