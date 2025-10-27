@@ -70,57 +70,73 @@ def whisper_confidence(path: str, model_name: str = "small") -> float:
 def compute_clarity_metrics(path: str) -> dict:
     """計算清晰度指標 - 改進版本"""
     result = {"snr": 0, "hnr": 5.0, "entropy": 0, "conf": 0, "stoi": 0}
-    
+
     try:
+        # 先載入音檔一次，供多個計算使用
+        wav, sr = librosa.load(path, sr=16000, mono=True)
+
         # SNR 計算
         try:
-            wav, sr = librosa.load(path, sr=16000, mono=True)
             noise_floor = np.percentile(np.abs(wav), 10)
             snr = 10 * np.log10(np.mean(wav**2) / (noise_floor**2 + 1e-6))
             result["snr"] = float(snr)
         except Exception as e:
             logger.error(f"SNR 計算錯誤: {e}")
-        
-        # HNR 計算 - 直接在這裡計算，不依賴外部函數
+
+        # HNR 計算 - 轉換為 WAV 格式後再使用 Parselmouth
         try:
-            sound = parselmouth.Sound(path)
-            harmonicity = sound.to_harmonicity()
-            values = harmonicity.values.flatten()
-            valid_values = values[values != -200]
-            valid_values = valid_values[~np.isnan(valid_values)]
-            
-            if len(valid_values) > 0:
-                hnr_mean = float(np.mean(valid_values))
-                if -50 <= hnr_mean <= 50:
-                    result["hnr"] = hnr_mean
+            import tempfile
+            import soundfile as sf
+
+            # 建立臨時 WAV 檔案
+            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as tmp_wav:
+                tmp_wav_path = tmp_wav.name
+                # 將音訊資料寫入臨時 WAV 檔案
+                sf.write(tmp_wav_path, wav, sr)
+
+            try:
+                # 使用轉換後的 WAV 檔案計算 HNR
+                sound = parselmouth.Sound(tmp_wav_path)
+                harmonicity = sound.to_harmonicity()
+                values = harmonicity.values.flatten()
+                valid_values = values[values != -200]
+                valid_values = valid_values[~np.isnan(valid_values)]
+
+                if len(valid_values) > 0:
+                    hnr_mean = float(np.mean(valid_values))
+                    if -50 <= hnr_mean <= 50:
+                        result["hnr"] = hnr_mean
+                    else:
+                        result["hnr"] = 5.0
                 else:
                     result["hnr"] = 5.0
-            else:
-                result["hnr"] = 5.0
+            finally:
+                # 清理臨時檔案
+                if os.path.exists(tmp_wav_path):
+                    os.unlink(tmp_wav_path)
+
         except Exception as e:
             logger.error(f"HNR 計算錯誤: {e}")
             result["hnr"] = 5.0
         
         # 頻譜熵
         try:
-            wav, sr = librosa.load(path, sr=16000, mono=True)
             S = np.abs(np.fft.rfft(wav))
             S_norm = S / (np.sum(S) + 1e-12)
             entropy = -np.sum(S_norm * np.log2(S_norm + 1e-12))
             result["entropy"] = float(entropy)
         except Exception as e:
             logger.error(f"熵計算錯誤: {e}")
-        
+
         # Whisper 信心度
         try:
             conf = whisper_confidence(path)
             result["conf"] = float(conf)
         except Exception as e:
             logger.error(f"信心度計算錯誤: {e}")
-        
+
         # STOI
         try:
-            wav, sr = librosa.load(path, sr=16000, mono=True)
             stoi_val = stoi(wav, wav, sr, extended=False)
             result["stoi"] = float(stoi_val)
         except Exception as e:
